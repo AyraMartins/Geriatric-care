@@ -1,0 +1,44 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Geriatric Care</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <!-- CONTEÚDO DA HOME -->
+  <div style="text-align: center; margin-top: 40px;">
+    <ion-icon name="home" size="large" color="primary"></ion-icon>
+    <h2>Minha página inicial</h2>
+  </div>
+
+</ion-content>
+
+<!-- TABS FORA DO ion-content (OBRIGATÓRIO) -->
+<ion-tabs>
+
+  <ion-tab-bar slot="bottom">
+
+    <ion-tab-button tab="home" style="color:#ffffff;" >
+      <ion-icon name="home-outline"></ion-icon>
+      <ion-label>Inicio</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="radio">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <ion-label>Relatório</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="library">
+      <ion-icon name="calendar-clear-outline"></ion-icon>
+      <ion-label>Marcar</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="search">
+      <ion-icon name="cog-outline"></ion-icon>
+      <ion-label>Configurações</ion-label>
+    </ion-tab-button>
+
+  </ion-tab-bar>
+
+</ion-tabs>

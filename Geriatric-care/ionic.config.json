@@ -1,0 +1,7 @@
+{
+  "name": "Geriatric-care",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
