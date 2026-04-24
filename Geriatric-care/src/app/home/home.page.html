@@ -5,12 +5,59 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+<ion-card class="heart">
+  <div class="content">
 
-  <!-- CONTEÚDO DA HOME -->
-  <div style="text-align: center; margin-top: 40px;">
-    <ion-icon name="home" size="large" color="primary"></ion-icon>
-    <h2>Minha página inicial</h2>
+    <div class="left">
+      <h1>{{ bpm }}</h1>
+      <p>bpm</p>
+    </div>
+
+    <div class="right">
+      <div class="circle">
+        <ion-icon name="heart"></ion-icon>
+      </div>
+    </div>
+
   </div>
+</ion-card>
+<div class="card-list">
+
+    <!-- Card 1 -->
+    <ion-card class="custom-card">
+      <div class="row">
+        <ion-icon name="heart-outline" class="icon"></ion-icon>
+        <div class="text">
+          <h2>Média diária</h2>
+          <p>86 bpm</p>
+        </div>
+      </div>
+    </ion-card>
+
+    <!-- Card 2 -->
+    <ion-card class="custom-card">
+      <div class="row">
+        <ion-icon name="trending-up-outline" class="icon"></ion-icon>
+        <div class="text">
+          <h2>Máxima de hoje</h2>
+          <p>98 bpm</p>
+        </div>
+      </div>
+    </ion-card>
+
+    <!-- Card 3 -->
+    <ion-card class="custom-card">
+      <div class="row">
+        <ion-icon name="trending-down-outline" class="icon"></ion-icon>
+        <div class="text">
+          <h2>Mínima de hoje</h2>
+          <p>76 bpm</p>
+        </div>
+      </div>
+    </ion-card>
+
+  </div>
+  
 
 </ion-content>
 
