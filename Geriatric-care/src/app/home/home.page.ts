@@ -14,23 +14,26 @@ export class HomePage implements OnInit {
 
   constructor() {}
 
-buscarBpm() {
-  fetch('http://192.168.0.51/bpm', { mode: 'no-cors' })
-    .then(res => res.text())
-    .then(valor => {
-      const numero = parseInt(valor);
-      if (!isNaN(numero)) {
-        this.bpm = numero;
-      }
-    })
-    .catch(err => {
-      console.error('Erro:', err);
-    });
-}
+  buscarBpm() {
+    fetch('http://192.168.0.132:5000/')
+      .then(res => res.json())
+      .then(data => {
+
+        console.log("DATA:", data);
+
+        if (data && typeof data.bpm === 'number') {
+          this.bpm = data.bpm;
+        }
+
+      })
+      .catch(err => console.error(err));
+  }
 
   ngOnInit() {
+    this.buscarBpm();
+
     setInterval(() => {
       this.buscarBpm();
-    }, 2000); // a cada 2 segundos
+    }, 2000);
   }
 }
