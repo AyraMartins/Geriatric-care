@@ -1,0 +1,51 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Geriatric-Care</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <ion-list>
+
+    <!-- NOME -->
+    <ion-item>
+      <ion-input
+        [(ngModel)]="nome"
+        name="nome"
+        label="Nome completo"
+        labelPlacement="floating"
+        type="text"
+        placeholder="Digite seu nome"
+        (ionBlur)="nomeTouched = true"
+        [clearInput]="true">
+      </ion-input>
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="nomeTouched && !nome">
+      Nome é obrigatório
+    </ion-text>
+
+    <!-- BOTÃO DO DATETIME -->
+    <ion-datetime-button datetime="datetime"></ion-datetime-button>
+
+    <!-- MODAL DO DATETIME -->
+    <ion-modal [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="datetime"></ion-datetime>
+      </ng-template>
+    </ion-modal>
+
+  </ion-list>
+
+  <!-- BOTÃO -->
+  <ion-button
+    expand="block"
+    color="danger"
+    [disabled]="!formValido()">
+
+    Cadastrar
+
+  </ion-button>
+
+</ion-content>

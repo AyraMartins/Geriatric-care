@@ -1,0 +1,58 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Geriatric Care</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <div class="center" >
+
+    <!-- Slide 1 -->
+    <div *ngIf="pagina === 1">
+      <ion-icon name="heart-circle-outline" class="icon"></ion-icon>
+      <h1>Bem-vindo</h1>
+      <p>Monitore batimentos em tempo real</p>
+    </div>
+
+    <!-- Slide 2 -->
+    <div *ngIf="pagina === 2">
+      <ion-icon name="document-text-outline" class="icon"></ion-icon>
+      <h1>Relatórios</h1>
+      <p>Acompanhe o histórico do paciente</p>
+    </div>
+
+    <!-- Slide 3 -->
+    <div *ngIf="pagina === 3">
+      <ion-icon name="warning" class="icon"></ion-icon>
+      <h1>Alertas</h1>
+      <p>Receba avisos quando algo estiver errado</p>
+
+      <ion-button class="btn-start" expand="block" (click)="irParaLogin()">
+  Começar
+</ion-button>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+      <ion-button fill="clear" class="btn-voltar" (click)="voltar()" *ngIf="pagina > 1">
+        Voltar
+      </ion-button>
+
+    <ion-button class="btn-next" fill="clear" (click)="proximo()" *ngIf="pagina < 3">
+  Próximo
+</ion-button>
+    </div>
+
+    <!-- DOTS -->
+    <div class="dots">
+      <span [class.active]="pagina === 1"></span>
+      <span [class.active]="pagina === 2"></span>
+      <span [class.active]="pagina === 3"></span>
+    </div>
+
+  </div>
+
+  
+
+</ion-content>

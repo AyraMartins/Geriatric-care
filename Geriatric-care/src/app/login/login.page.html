@@ -1,0 +1,95 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Geriatric-Care</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <ion-list>
+
+    <!-- NOME -->
+    <ion-item>
+      <ion-input
+        [(ngModel)]="nome"
+        name="nome"
+        label="Nome completo"
+        labelPlacement="floating"
+        type="text"
+        placeholder="Digite seu nome"
+        (ionBlur)="nomeTouched = true"
+        [clearInput]="true">
+      </ion-input>
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="nomeTouched && !nome">
+      Nome é obrigatório
+    </ion-text>
+
+    <!-- EMAIL -->
+    <ion-item>
+      <ion-input
+        [(ngModel)]="email"
+        name="email"
+        label="Email"
+        labelPlacement="floating"
+        type="email"
+        placeholder="email@domain.com"
+        (ionBlur)="emailTouched = true"
+        [clearInput]="true">
+      </ion-input>
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="emailTouched && !email">
+      Email é obrigatório
+    </ion-text>
+
+    <!-- TELEFONE -->
+    <ion-item>
+      <ion-input
+        [(ngModel)]="telefone"
+        name="telefone"
+        label="Telefone"
+        labelPlacement="floating"
+        type="tel"
+        placeholder="888-888-8888"
+        (ionBlur)="telefoneTouched = true"
+        [clearInput]="true">
+      </ion-input>
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="telefoneTouched && !telefone">
+      Telefone é obrigatório
+    </ion-text>
+
+    <!-- SENHA -->
+    <ion-item>
+      <ion-input
+        [(ngModel)]="senha"
+        name="senha"
+        label="Senha"
+        labelPlacement="floating"
+        type="password"
+        placeholder="Digite sua senha"
+        (ionBlur)="senhaTouched = true"
+        [clearInput]="true">
+      </ion-input>
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="senhaTouched && !senha">
+      Senha é obrigatória
+    </ion-text>
+
+  </ion-list>
+
+  <!-- BOTÃO -->
+  <ion-button
+  expand="block"
+  color="danger"
+  [disabled]="!formValido()"
+  (click)="salvarCuidador()">
+
+  Cadastra
+</ion-button>
+
+</ion-content>

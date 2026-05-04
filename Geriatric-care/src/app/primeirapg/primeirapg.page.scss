@@ -1,0 +1,42 @@
+
+/* força altura real da tela */
+ion-content.full::part(scroll) {
+  height: 100%;
+}
+
+/* centralização real */
+.center {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* vertical */
+  align-items: center;       /* horizontal */
+  text-align: center;
+}
+
+/* ícone */
+.icon {
+  font-size: 90px;
+  color: #ad0d0d;
+  margin-bottom: 20px;
+}
+
+.btn-start::part(native) {
+  background: #ad0d0d !important;
+  color: white !important;
+  border-radius: 5px !important;
+}
+
+/* VOLTAR */
+ion-button.btn-voltar::part(native) {
+  background: transparent !important;
+  color: #ad0d0d !important;
+  box-shadow: none !important;
+}
+
+/* PRÓXIMO (AGORA CORRIGIDO) */
+ion-button.btn-next::part(native) {
+  background: #ad0d0d !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
