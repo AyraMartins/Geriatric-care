@@ -4,22 +4,16 @@ import { OnboardingGuard } from './guards/onboarding-guard';
 export const routes: Routes = [
 
   {
-  path: '',
-  redirectTo: 'primeirapg',
-  pathMatch: 'full',
-},
+    path: '',
+    redirectTo: 'home',
+    pathMatch: 'full',
+  },
 
   {
-    path: '',
-    canActivate: [OnboardingGuard],
+    path: 'home',
     loadComponent: () =>
       import('./home/home.page').then(m => m.HomePage),
   },
-  {
-  path: 'home',
-  loadComponent: () =>
-    import('./home/home.page').then(m => m.HomePage),
-},
 
   {
     path: 'primeirapg',
@@ -38,6 +32,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./cadastro-paciente/cadastro-paciente.page')
         .then(m => m.CadastroPacientePage),
-  },
+  }
 
 ];

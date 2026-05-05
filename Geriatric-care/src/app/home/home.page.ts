@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
+import { HttpClient } from '@angular/common/http';
+import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -8,32 +10,45 @@ import { IonicModule } from '@ionic/angular';
   standalone: true,
   imports: [IonicModule]
 })
-export class HomePage implements OnInit {
+export class HomePage {
 
-  bpm: number = 0;
+  bpm: number | null = null;
+  sub!: Subscription;
 
-  constructor() {}
+  constructor(private http: HttpClient) {}
 
   buscarBpm() {
-    fetch('http://192.168.0.132:5000/')
-      .then(res => res.json())
-      .then(data => {
+    this.http.get<any>('http://10.123.229.18:5000/')
+      .subscribe(data => {
 
         console.log("DATA:", data);
 
-        if (data && typeof data.bpm === 'number') {
-          this.bpm = data.bpm;
+        const novoBpm = Number(data.bpm);
+
+        if (!isNaN(novoBpm) && novoBpm > 0) {
+          this.bpm = novoBpm;
         }
 
-      })
-      .catch(err => console.error(err));
+      }, err => console.error(err));
   }
 
-  ngOnInit() {
+  // 👇 Ionic chama automaticamente
+  ionViewWillEnter() {
+    console.log("ENTROU NA TELA");
+
     this.buscarBpm();
 
-    setInterval(() => {
+    this.sub = interval(3000).subscribe(() => {
       this.buscarBpm();
-    }, 2000);
+    });
+  }
+
+  // 👇 Ionic chama automaticamente
+  ionViewWillLeave() {
+    console.log("SAIU DA TELA");
+
+    if (this.sub) {
+      this.sub.unsubscribe();
+    }
   }
 }
