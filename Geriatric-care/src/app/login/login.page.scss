@@ -13,3 +13,10 @@ ion-item {
 ion-input.ion-focused {
   --highlight-color: #ad0d0d !important;
 }
+.erro {
+  display: block;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 13px;
+}

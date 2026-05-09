@@ -1,54 +1,62 @@
-import { Component } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
-import { HttpClient } from '@angular/common/http';
-import { interval, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { BpmService } from '../services/bpm';
 
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [IonicModule]
+  imports: [CommonModule, IonicModule]
 })
-export class HomePage {
+export class HomePage implements OnInit, OnDestroy {
 
   bpm: number | null = null;
-  sub!: Subscription;
+  private subscription = new Subscription();
 
-  constructor(private http: HttpClient) {}
-
-  buscarBpm() {
-    this.http.get<any>('http://10.123.229.18:5000/')
-      .subscribe(data => {
-
-        console.log("DATA:", data);
-
-        const novoBpm = Number(data.bpm);
-
-        if (!isNaN(novoBpm) && novoBpm > 0) {
-          this.bpm = novoBpm;
-        }
-
-      }, err => console.error(err));
+  constructor(
+    private bpmService: BpmService,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone,
+    private appRef: ApplicationRef
+  ) {
+    console.log('HOME CRIADA');
   }
 
-  // 👇 Ionic chama automaticamente
-  ionViewWillEnter() {
-    console.log("ENTROU NA TELA");
-
-    this.buscarBpm();
-
-    this.sub = interval(3000).subscribe(() => {
-      this.buscarBpm();
-    });
+  ngOnInit() {
+    console.log('HOME ngOnInit');
+    this.subscription.add(
+      this.bpmService.bpm$.subscribe(value => {
+        console.log('HOME BPM VALUE:', value, 'ZONE:', NgZone.isInAngularZone());
+        this.bpm = value;
+        setTimeout(() => {
+          this.cdr.detectChanges();
+          this.appRef.tick();
+          const manual = document.getElementById('debug-bpm-manual');
+          const display = document.getElementById('display-bpm');
+          const debugValue = document.getElementById('debug-bpm-value');
+          const debugStatic = document.getElementById('debug-bpm');
+          if (manual) {
+            manual.innerText = `MANUAL DEBUG bpm = ${value}`;
+          }
+          if (display) {
+            display.innerText = `${value}`;
+          }
+          if (debugValue) {
+            debugValue.innerText = `DEBUG: bpm = ${value}`;
+          }
+          if (debugStatic) {
+            debugStatic.innerText = `STATIC DEBUG VISIBLE: bpm = ${value} | JSON = ${JSON.stringify(value)} | SHOW = true`;
+          }
+        }, 0);
+      })
+    );
   }
 
-  // 👇 Ionic chama automaticamente
-  ionViewWillLeave() {
-    console.log("SAIU DA TELA");
-
-    if (this.sub) {
-      this.sub.unsubscribe();
-    }
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
+
 }

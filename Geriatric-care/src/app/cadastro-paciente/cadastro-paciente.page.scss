@@ -1,0 +1,25 @@
+ion-input {
+  --highlight-color-focused: #ad0d0d !important;
+  --highlight-color-valid: #ad0d0d !important;
+  --highlight-color-invalid: #ad0d0d !important;
+}
+
+/* força o underline do input */
+ion-item {
+  --highlight-color-focused: #ad0d0d !important;
+}
+
+/* remove qualquer cor padrão do Ionic */
+ion-input.ion-focused {
+  --highlight-color: #ad0d0d !important;
+}
+.erro {
+  display: block;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 13px;
+}
+ion-datetime-button {
+  display: block;
+}

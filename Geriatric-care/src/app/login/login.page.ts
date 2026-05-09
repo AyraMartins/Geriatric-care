@@ -68,15 +68,25 @@ export class LoginPage implements OnInit {
       senha: this.senha
     };
 
-    this.http.post('http://localhost:5000/cuidador', dados)
+    this.http.post<any>('http://localhost:5000/cuidador', dados)
       .subscribe({
-        next: (res: any) => {
+        next: (res) => {
+
           console.log('Salvo com sucesso', res);
 
+          // salva login
           localStorage.setItem('cuidadorLogado', 'true');
 
+          // salva ID do cuidador
+          localStorage.setItem(
+            'cd_cuidador',
+            res.cd_cuidador.toString()
+          );
+
+          // vai para cadastro paciente
           this.router.navigate(['/cadastro-paciente']);
         },
+
         error: (err) => {
           console.log('Erro ao salvar:', err);
         }

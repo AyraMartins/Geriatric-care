@@ -10,6 +10,7 @@
 
     <!-- NOME -->
     <ion-item>
+
       <ion-input
         [(ngModel)]="nome"
         name="nome"
@@ -19,30 +20,63 @@
         placeholder="Digite seu nome"
         (ionBlur)="nomeTouched = true"
         [clearInput]="true">
+
       </ion-input>
+
     </ion-item>
 
-    <ion-text color="danger" *ngIf="nomeTouched && !nome">
+    <!-- ERRO -->
+    <ion-text
+      color="danger"
+      class="erro"
+      *ngIf="nomeTouched && !nome">
+
       Nome é obrigatório
+
     </ion-text>
 
-    <!-- BOTÃO DO DATETIME -->
-    <ion-datetime-button datetime="datetime"></ion-datetime-button>
+    <br>
 
-    <!-- MODAL DO DATETIME -->
+    <!-- DATA -->
+    <ion-item>
+
+      <ion-label>
+        Data de Nascimento
+      </ion-label>
+
+      <ion-datetime-button
+        datetime="datetime">
+      </ion-datetime-button>
+
+    </ion-item>
+
+    <!-- MODAL -->
     <ion-modal [keepContentsMounted]="true">
+
       <ng-template>
-        <ion-datetime id="datetime"></ion-datetime>
+
+        <ion-datetime
+          id="datetime"
+          presentation="date"
+          locale="pt-BR"
+          (ionChange)="pegarData($event)">
+
+        </ion-datetime>
+
       </ng-template>
+
     </ion-modal>
 
   </ion-list>
+
+  <br>
 
   <!-- BOTÃO -->
   <ion-button
     expand="block"
     color="danger"
-    [disabled]="!formValido()">
+    [disabled]="!formValido()"
+    (click)="salvarPaciente()">
 
     Cadastrar
 

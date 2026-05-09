@@ -22,7 +22,7 @@
       </ion-input>
     </ion-item>
 
-    <ion-text color="danger" *ngIf="nomeTouched && !nome">
+    <ion-text color="danger" class="erro" *ngIf="nomeTouched && !nome">
       Nome é obrigatório
     </ion-text>
 
@@ -40,7 +40,7 @@
       </ion-input>
     </ion-item>
 
-    <ion-text color="danger" *ngIf="emailTouched && !email">
+    <ion-text color="danger" class="erro" *ngIf="emailTouched && !email">
       Email é obrigatório
     </ion-text>
 
@@ -58,7 +58,7 @@
       </ion-input>
     </ion-item>
 
-    <ion-text color="danger" *ngIf="telefoneTouched && !telefone">
+    <ion-text color="danger" class="erro" *ngIf="telefoneTouched && !telefone">
       Telefone é obrigatório
     </ion-text>
 
@@ -76,7 +76,7 @@
       </ion-input>
     </ion-item>
 
-    <ion-text color="danger" *ngIf="senhaTouched && !senha">
+    <ion-text color="danger" class="erro" *ngIf="senhaTouched && !senha">
       Senha é obrigatória
     </ion-text>
 

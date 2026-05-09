@@ -1,19 +1,16 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
-from datetime import datetime
 
-# -------------------
+# --------------------
 # APP
-# -------------------
-
+# --------------------
 app = Flask(__name__)
 CORS(app)
 
-# -------------------
-# MYSQL
-# -------------------
-
+# --------------------
+# BANCO MYSQL
+# --------------------
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -21,15 +18,10 @@ db = mysql.connector.connect(
     database="banco_geriatric_care"
 )
 
-# -------------------
-# DADOS BPM
-# -------------------
-
+# --------------------
+# BPM ESP32
+# --------------------
 dados = []
-
-# -------------------
-# RECEBER BPM
-# -------------------
 
 @app.route('/bpm')
 def bpm():
@@ -37,41 +29,25 @@ def bpm():
     valor = request.args.get('valor')
 
     if valor:
+        dados.append(int(valor))
+        print("Recebido BPM:", valor)
 
-        bpm = int(valor)
+    return {"ok": True}
 
-        dados.append({
-            "valor": bpm,
-            "hora": datetime.now().strftime("%H:%M:%S")
-        })
-
-        print("BPM:", bpm)
-
-    return jsonify({
-        "ok": True
-    })
-
-# -------------------
-# PEGAR BPM
-# -------------------
-
+# --------------------
+# HOME
+# --------------------
 @app.route('/')
 def home():
 
-    ultimo = dados[-1] if dados else {
-        "valor": 0,
-        "hora": "--:--:--"
-    }
-
     return jsonify({
-        "ultimo_bpm": ultimo,
+        "bpm": dados[-1] if dados else 0,
         "historico": dados[-10:]
     })
 
-# -------------------
-# CADASTRAR CUIDADOR
-# -------------------
-
+# --------------------
+# CADASTRO CUIDADOR
+# --------------------
 @app.route('/cuidador', methods=['POST'])
 def criar_cuidador():
 
@@ -89,42 +65,89 @@ def criar_cuidador():
                 tel_cuidador,
                 cd_tipo
             )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s
-            )
+            VALUES (%s, %s, %s, %s)
         """
 
-        cursor.execute(sql, (
-
+        valores = (
             data['nome'],
             data['email'],
             data['telefone'],
             1
+        )
 
-        ))
+        cursor.execute(sql, valores)
 
         db.commit()
 
+        cd_cuidador = cursor.lastrowid
+
+        cursor.close()
+
         return jsonify({
-            "msg": "Cuidador criado"
+            "msg": "Cuidador criado com sucesso",
+            "cd_cuidador": cd_cuidador
         }), 200
 
     except Exception as e:
 
-        print(e)
+        print("ERRO:", e)
 
         return jsonify({
             "erro": str(e)
         }), 500
 
-# -------------------
-# START
-# -------------------
+# --------------------
+# CADASTRO PACIENTE
+# --------------------
+# --------------------
+# CADASTRO PACIENTE
+# --------------------
+@app.route('/paciente', methods=['POST'])
+def criar_paciente():
 
+    try:
+
+        data = request.json
+
+        cursor = db.cursor()
+
+        sql = """
+            INSERT INTO paciente
+            (
+                nm_paciente,
+                dt_nasc,
+                cd_cuidador
+            )
+            VALUES (%s, %s, %s)
+        """
+
+        valores = (
+            data['nome'],
+            data['data_nascimento'],
+            data['cd_cuidador']
+        )
+
+        cursor.execute(sql, valores)
+
+        db.commit()
+
+        cursor.close()
+
+        return jsonify({
+            "msg": "Paciente cadastrado com sucesso"
+        }), 200
+
+    except Exception as e:
+
+        print("ERRO:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+# --------------------
+# START SERVER
+# --------------------
 if __name__ == "__main__":
 
     app.run(
