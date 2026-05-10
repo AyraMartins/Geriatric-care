@@ -113,9 +113,13 @@ export class CadastroPacientePage implements OnInit {
       dados
     ).subscribe({
 
-      next: (res) => {
+      next: (res: any) => {
 
         console.log('Paciente salvo com sucesso', res);
+
+        if (res.cd_paciente) {
+          localStorage.setItem('cd_paciente', res.cd_paciente.toString());
+        }
 
         // REDIRECIONA PARA HOME
         this.router.navigate(['/home']);
