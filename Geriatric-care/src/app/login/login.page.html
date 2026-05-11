@@ -9,7 +9,7 @@
   <ion-list>
 
     <!-- NOME -->
-    <ion-item>
+    <ion-item [class.input-error]="nomeTouched && !nome">
       <ion-input
         [(ngModel)]="nome"
         name="nome"
@@ -27,7 +27,7 @@
     </ion-text>
 
     <!-- EMAIL -->
-    <ion-item>
+    <ion-item [class.input-error]="emailTouched && !email">
       <ion-input
         [(ngModel)]="email"
         name="email"
@@ -45,7 +45,7 @@
     </ion-text>
 
     <!-- TELEFONE -->
-    <ion-item>
+    <ion-item [class.input-error]="telefoneTouched && !telefone">
       <ion-input
         [(ngModel)]="telefone"
         name="telefone"
@@ -63,7 +63,7 @@
     </ion-text>
 
     <!-- SENHA -->
-    <ion-item>
+    <ion-item [class.input-error]="senhaTouched && !senha">
       <ion-input
         [(ngModel)]="senha"
         name="senha"
@@ -91,5 +91,22 @@
 
   Cadastra
 </ion-button>
+ <!-- BOTÃO -->
+<ion-button
+  expand="block"
+  color="danger"
+  id="login-alert">
+
+  Login
+</ion-button>
+
+<ion-alert
+  trigger="login-alert"
+  header="Login"
+  message="Digite suas credenciais"
+  [buttons]="alertButtonsLogin"
+  [inputs]="alertInputsLogin">
+</ion-alert>
+
 
 </ion-content>
