@@ -14,10 +14,8 @@ import {
   IonItem,
   IonList,
   IonButton,
-  IonText,
-  IonAlert
+  IonText
 } from '@ionic/angular/standalone';
-import { AlertController } from '@ionic/angular';
 
 @Component({
   selector: 'app-login',
@@ -34,7 +32,6 @@ import { AlertController } from '@ionic/angular';
     IonList,
     IonButton,
     IonText,
-    IonAlert,
     CommonModule,
     FormsModule
   ]
@@ -45,39 +42,6 @@ export class LoginPage implements OnInit {
   email = '';
   telefone = '';
   senha = '';
-  
-  // Campos de validação do alert login
-  emailLogin = '';
-  senhaLogin = '';
-  emailLoginTouched = false;
-  senhaLoginTouched = false;
-  
-  alertInputsLogin = [
-    {
-      name: 'email',
-      type: 'email',
-      placeholder: 'Email',
-      attributes: {
-        inputmode: 'email'
-      }
-    },
-    {
-      name: 'senha',
-      type: 'password',
-      placeholder: 'Senha'
-    }
-  ];
-
-  alertButtonsLogin = [
-    {
-      text: 'Cancelar',
-      role: 'cancel'
-    },
-    {
-      text: 'Ir',
-      handler: (data: any) => this.handleLogin(data)
-    }
-  ];
 
   nomeTouched = false;
   emailTouched = false;
@@ -86,8 +50,7 @@ export class LoginPage implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private alertController: AlertController
+    private router: Router
   ) {}
 
   ngOnInit() {}
@@ -102,8 +65,7 @@ export class LoginPage implements OnInit {
       nome: this.nome,
       email: this.email,
       telefone: this.telefone,
-      senha: this.senha,
-      cd_senha: this.senha
+      senha: this.senha
     };
 
     this.http.post<any>('http://localhost:5000/cuidador', dados)
@@ -114,8 +76,6 @@ export class LoginPage implements OnInit {
 
           // salva login
           localStorage.setItem('cuidadorLogado', 'true');
-          localStorage.setItem('email', this.email);
-          localStorage.setItem('senha', this.senha);
 
           // salva ID do cuidador
           localStorage.setItem(
@@ -131,45 +91,5 @@ export class LoginPage implements OnInit {
           console.log('Erro ao salvar:', err);
         }
       });
-  }
-
-  handleLogin(data: any) {
-    if (!data.email || !data.senha) {
-      this.showAlert('Erro', 'Email e senha são obrigatórios.');
-      return false;
-    }
-
-    // Valida no backend
-    this.http.post<any>('http://localhost:5000/validar-login', {
-      email: data.email,
-      senha: data.senha
-    }).subscribe({
-      next: (res) => {
-        if (res.valido) {
-          localStorage.setItem('cuidadorLogado', 'true');
-          localStorage.setItem('email', data.email);
-          localStorage.setItem('cd_cuidador', res.cd_cuidador.toString());
-          this.router.navigate(['/home']);
-        } else {
-          this.showAlert('Erro', res.erro || 'Email ou senha inválidos.');
-        }
-      },
-      error: (err) => {
-        console.log('Erro ao validar login:', err);
-        this.showAlert('Erro', 'Erro ao conectar com o servidor.');
-      }
-    });
-
-    return false;
-  }
-
-  async showAlert(header: string, message: string) {
-    const alert = await this.alertController.create({
-      header,
-      message,
-      buttons: ['OK']
-    });
-
-    await alert.present();
   }
 }

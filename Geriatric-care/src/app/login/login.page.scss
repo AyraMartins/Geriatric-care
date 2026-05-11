@@ -20,16 +20,3 @@ ion-input.ion-focused {
   margin-top: 4px;
   font-size: 13px;
 }
-
-/* Estilo para input com erro */
-ion-item.input-error {
-  --border-color: #ff0000 !important;
-  --border-style: solid !important;
-  --border-width: 1px !important;
-  --highlight-color-focused: #ff0000 !important;
-  --highlight-color-invalid: #ff0000 !important;
-}
-
-ion-item.input-error ion-input {
-  --highlight-color: #ff0000 !important;
-}

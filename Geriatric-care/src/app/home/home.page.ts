@@ -1,6 +1,5 @@
 import { ApplicationRef, ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { IonicModule } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { BpmService } from '../services/bpm';
@@ -15,15 +14,10 @@ import { BpmService } from '../services/bpm';
 export class HomePage implements OnInit, OnDestroy {
 
   bpm: number | null = null;
-  mediaDiaria: number | null = null;
-  maximoHoje: number | null = null;
-  minimoHoje: number | null = null;
-  cdPaciente = 1;
   private subscription = new Subscription();
 
   constructor(
     private bpmService: BpmService,
-    private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private zone: NgZone,
     private appRef: ApplicationRef
@@ -33,7 +27,6 @@ export class HomePage implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log('HOME ngOnInit');
-    this.buscarResumoDiario();
     this.subscription.add(
       this.bpmService.bpm$.subscribe(value => {
         console.log('HOME BPM VALUE:', value, 'ZONE:', NgZone.isInAngularZone());
@@ -60,25 +53,6 @@ export class HomePage implements OnInit, OnDestroy {
         }, 0);
       })
     );
-  }
-
-  buscarResumoDiario() {
-    this.http.get<any[]>(`http://localhost:5000/resumo-diario/${this.cdPaciente}`)
-      .subscribe(res => {
-        if (!res?.length) {
-          return;
-        }
-
-        const maiorDataResumo = [...res].sort((a, b) => {
-          const dataA = new Date(a.data).getTime();
-          const dataB = new Date(b.data).getTime();
-          return dataB - dataA;
-        })[0];
-
-        this.mediaDiaria = maiorDataResumo.media ?? null;
-        this.maximoHoje = maiorDataResumo.maximo ?? null;
-        this.minimoHoje = maiorDataResumo.minimo ?? null;
-      });
   }
 
   ngOnDestroy() {
