@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 
@@ -14,10 +13,8 @@ import {
   IonItem,
   IonList,
   IonButton,
-  IonText,
-  IonAlert
+  IonModal
 } from '@ionic/angular/standalone';
-import { AlertController } from '@ionic/angular';
 
 @Component({
   selector: 'app-login',
@@ -33,69 +30,67 @@ import { AlertController } from '@ionic/angular';
     IonItem,
     IonList,
     IonButton,
-    IonText,
-    IonAlert,
+    IonModal,
     CommonModule,
     FormsModule
   ]
 })
-export class LoginPage implements OnInit {
+export class LoginPage {
 
+  // cadastro
   nome = '';
   email = '';
   telefone = '';
   senha = '';
-  
-  // Campos de validação do alert login
+
+  // login modal
+  mostrarModalLogin = false;
+
   emailLogin = '';
   senhaLogin = '';
-  emailLoginTouched = false;
-  senhaLoginTouched = false;
-  
-  alertInputsLogin = [
-    {
-      name: 'email',
-      type: 'email',
-      placeholder: 'Email',
-      attributes: {
-        inputmode: 'email'
-      }
-    },
-    {
-      name: 'senha',
-      type: 'password',
-      placeholder: 'Senha'
-    }
-  ];
-
-  alertButtonsLogin = [
-    {
-      text: 'Cancelar',
-      role: 'cancel'
-    },
-    {
-      text: 'Ir',
-      handler: (data: any) => this.handleLogin(data)
-    }
-  ];
-
-  nomeTouched = false;
-  emailTouched = false;
-  telefoneTouched = false;
-  senhaTouched = false;
 
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private alertController: AlertController
+    private router: Router
   ) {}
 
-  ngOnInit() {}
+  // -------------------------
+  // ALERT SIMPLES (faltava isso)
+  // -------------------------
+  showAlert(titulo: string, msg: string) {
+    alert(`${titulo}\n\n${msg}`);
+  }
 
+  // -------------------------
+  // ABRIR MODAL LOGIN
+  // -------------------------
+  abrirLogin(ev?: Event) {
+    ev?.preventDefault?.();
+    (document.activeElement as HTMLElement)?.blur();
+    this.mostrarModalLogin = true;
+  }
+
+  // -------------------------
+  // FECHAR MODAL LOGIN
+  // -------------------------
+  async fecharLogin() {
+    this.mostrarModalLogin = false;
+    await new Promise(r => setTimeout(r, 50));
+    (document.activeElement as HTMLElement)?.blur();
+    this.emailLogin = '';
+    this.senhaLogin = '';
+  }
+
+  // -------------------------
+  // VALIDA CADASTRO
+  // -------------------------
   formValido() {
     return this.nome && this.email && this.telefone && this.senha;
   }
 
+  // -------------------------
+  // SALVAR CUIDADOR
+  // -------------------------
   salvarCuidador() {
 
     const dados = {
@@ -107,69 +102,86 @@ export class LoginPage implements OnInit {
     };
 
     this.http.post<any>('http://localhost:5000/cuidador', dados)
-      .subscribe({
-        next: (res) => {
+      .subscribe(res => {
 
-          console.log('Salvo com sucesso', res);
+        localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
+        localStorage.setItem('email', this.email);
 
-          // salva login
-          localStorage.setItem('cuidadorLogado', 'true');
-          localStorage.setItem('email', this.email);
-          localStorage.setItem('senha', this.senha);
-
-          // salva ID do cuidador
-          localStorage.setItem(
-            'cd_cuidador',
-            res.cd_cuidador.toString()
-          );
-
-          // vai para cadastro paciente
-          this.router.navigate(['/cadastro-paciente']);
-        },
-
-        error: (err) => {
-          console.log('Erro ao salvar:', err);
-        }
+        this.router.navigate(['/cadastro-paciente']);
       });
   }
 
-  handleLogin(data: any) {
-    if (!data.email || !data.senha) {
-      this.showAlert('Erro', 'Email e senha são obrigatórios.');
-      return false;
+  // -------------------------
+  // LOGIN
+  // -------------------------
+  handleLogin() {
+
+    const data = {
+      email: this.emailLogin,
+      senha: this.senhaLogin
+    };
+
+    if (!data.email) {
+      this.showAlert('Campo obrigatório', 'Digite o email.');
+      return;
     }
 
-    // Valida no backend
-    this.http.post<any>('http://localhost:5000/validar-login', {
-      email: data.email,
-      senha: data.senha
-    }).subscribe({
+    if (!data.senha) {
+      this.showAlert('Campo obrigatório', 'Digite a senha.');
+      return;
+    }
+
+    this.http.post<any>(
+      'http://localhost:5000/validar-login',
+      data
+    )
+    .subscribe({
+
       next: (res) => {
+
         if (res.valido) {
+
           localStorage.setItem('cuidadorLogado', 'true');
           localStorage.setItem('email', data.email);
-          localStorage.setItem('cd_cuidador', res.cd_cuidador.toString());
-          this.router.navigate(['/home']);
+          localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
+
+          // -------------------------
+          // BUSCA PACIENTE
+          // -------------------------
+          this.http.get<any>(
+            `http://localhost:5000/paciente-cuidador/${res.cd_cuidador}`
+          )
+          .subscribe({
+
+            next: (paciente) => {
+
+              if (!paciente?.cd_paciente) {
+                this.showAlert('Erro', 'Paciente não encontrado.');
+                return;
+              }
+
+              localStorage.setItem(
+                'cd_paciente',
+                String(paciente.cd_paciente)
+              );
+
+              this.fecharLogin();
+              this.router.navigate(['/home']);
+            },
+
+            error: () => {
+              this.showAlert('Erro', 'Paciente não encontrado.');
+            }
+          });
+
         } else {
-          this.showAlert('Erro', res.erro || 'Email ou senha inválidos.');
+          this.showAlert('Erro', 'Email ou senha inválidos.');
         }
       },
-      error: (err) => {
-        console.log('Erro ao validar login:', err);
-        this.showAlert('Erro', 'Erro ao conectar com o servidor.');
+
+      error: () => {
+        this.showAlert('Erro', 'Erro ao conectar com servidor.');
       }
     });
-
-    return false;
-  }
-
-  async showAlert(header: string, message: string) {
-    const alert = await this.alertController.create({
-      header,
-      message,
-      buttons: ['OK']
-    });
-
-    await alert.present();
   }
 }

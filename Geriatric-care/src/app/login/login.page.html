@@ -1,112 +1,82 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>Geriatric-Care</ion-title>
+    <ion-title>Geriatric Care</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
 
+  <!-- CADASTRO -->
   <ion-list>
 
-    <!-- NOME -->
-    <ion-item [class.input-error]="nomeTouched && !nome">
-      <ion-input
-        [(ngModel)]="nome"
-        name="nome"
-        label="Nome completo"
-        labelPlacement="floating"
-        type="text"
-        placeholder="Digite seu nome"
-        (ionBlur)="nomeTouched = true"
-        [clearInput]="true">
-      </ion-input>
+    <ion-item>
+      <ion-input [(ngModel)]="nome" placeholder="Nome"></ion-input>
     </ion-item>
 
-    <ion-text color="danger" class="erro" *ngIf="nomeTouched && !nome">
-      Nome é obrigatório
-    </ion-text>
-
-    <!-- EMAIL -->
-    <ion-item [class.input-error]="emailTouched && !email">
-      <ion-input
-        [(ngModel)]="email"
-        name="email"
-        label="Email"
-        labelPlacement="floating"
-        type="email"
-        placeholder="email@domain.com"
-        (ionBlur)="emailTouched = true"
-        [clearInput]="true">
-      </ion-input>
+    <ion-item>
+      <ion-input [(ngModel)]="email" placeholder="Email"></ion-input>
     </ion-item>
 
-    <ion-text color="danger" class="erro" *ngIf="emailTouched && !email">
-      Email é obrigatório
-    </ion-text>
-
-    <!-- TELEFONE -->
-    <ion-item [class.input-error]="telefoneTouched && !telefone">
-      <ion-input
-        [(ngModel)]="telefone"
-        name="telefone"
-        label="Telefone"
-        labelPlacement="floating"
-        type="tel"
-        placeholder="888-888-8888"
-        (ionBlur)="telefoneTouched = true"
-        [clearInput]="true">
-      </ion-input>
+    <ion-item>
+      <ion-input [(ngModel)]="telefone" placeholder="Telefone"></ion-input>
     </ion-item>
 
-    <ion-text color="danger" class="erro" *ngIf="telefoneTouched && !telefone">
-      Telefone é obrigatório
-    </ion-text>
-
-    <!-- SENHA -->
-    <ion-item [class.input-error]="senhaTouched && !senha">
-      <ion-input
-        [(ngModel)]="senha"
-        name="senha"
-        label="Senha"
-        labelPlacement="floating"
-        type="password"
-        placeholder="Digite sua senha"
-        (ionBlur)="senhaTouched = true"
-        [clearInput]="true">
-      </ion-input>
+    <ion-item>
+      <ion-input [(ngModel)]="senha" type="password" placeholder="Senha"></ion-input>
     </ion-item>
-
-    <ion-text color="danger" class="erro" *ngIf="senhaTouched && !senha">
-      Senha é obrigatória
-    </ion-text>
 
   </ion-list>
 
-  <!-- BOTÃO -->
-  <ion-button
-  expand="block"
-  color="danger"
-  [disabled]="!formValido()"
-  (click)="salvarCuidador()">
+  <ion-button expand="block"  color="danger" (click)="salvarCuidador()" [disabled]="!formValido()">
+    Cadastrar
+  </ion-button>
 
-  Cadastra
-</ion-button>
- <!-- BOTÃO -->
-<ion-button
-  expand="block"
-  color="danger"
-  id="login-alert">
+  <ion-button expand="block" color="danger" (click)="abrirLogin($event)">
+    Login
+  </ion-button>
 
-  Login
-</ion-button>
+  <!-- MODAL LOGIN -->
+  <ion-modal
+    [isOpen]="mostrarModalLogin"
+    (didDismiss)="fecharLogin()">
 
-<ion-alert
-  trigger="login-alert"
-  header="Login"
-  message="Digite suas credenciais"
-  [buttons]="alertButtonsLogin"
-  [inputs]="alertInputsLogin">
-</ion-alert>
+    <ng-template>
 
+      <ion-header>
+        <ion-toolbar color="danger">
+          <ion-title>Login</ion-title>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+
+        <ion-item>
+          <ion-input
+            [(ngModel)]="emailLogin"
+            placeholder="Email">
+          </ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-input
+            [(ngModel)]="senhaLogin"
+            type="password"
+            placeholder="Senha">
+          </ion-input>
+        </ion-item>
+
+        <ion-button expand="block" (click)="handleLogin()">
+          Entrar
+        </ion-button>
+
+        <ion-button expand="block" color="medium" (click)="fecharLogin()">
+          Cancelar
+        </ion-button>
+
+      </ion-content>
+
+    </ng-template>
+
+  </ion-modal>
 
 </ion-content>

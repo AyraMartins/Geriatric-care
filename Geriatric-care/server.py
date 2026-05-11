@@ -44,67 +44,42 @@ def bpm():
 
     try:
 
-        valor = request.args.get('valor')
+        valor = request.args.get('valor', '').strip()
 
-        # -----------------------------------
-        # PACIENTE FIXO TEMPORÁRIO
-        # -----------------------------------
+        print("RAW RECEBIDO:", valor)
+
+        if not valor:
+            return jsonify({"erro": "valor vazio"}), 400
+
+        try:
+            valor = int(valor)
+        except:
+            return jsonify({"erro": "valor inválido"}), 400
+
         cd_paciente = 3
 
-        if valor:
+        dados.append(valor)
 
-            print("BPM RECEBIDO:", valor)
+        db = conectar()
+        cursor = db.cursor()
 
-            # salva temporário
-            dados.append(int(valor))
+        sql = """
+        INSERT INTO batimentos
+        (btm_batimentos, dt_hr_batimentos, cd_paciente)
+        VALUES (%s, NOW(), %s)
+        """
 
-            # conecta banco
-            db = conectar()
+        cursor.execute(sql, (valor, cd_paciente))
 
-            cursor = db.cursor()
+        db.commit()
+        cursor.close()
+        db.close()
 
-            # insert
-            sql = """
-            INSERT INTO batimentos
-            (
-                btm_batimentos,
-                dt_hr_batimentos,
-                cd_paciente
-            )
-            VALUES
-            (
-                %s,
-                NOW(),
-                %s
-            )
-            """
-
-            valores = (
-                valor,
-                cd_paciente
-            )
-
-            cursor.execute(sql, valores)
-
-            db.commit()
-
-            cursor.close()
-            db.close()
-
-            print("BPM SALVO NO MYSQL")
-
-        return jsonify({
-            "ok": True
-        })
+        return jsonify({"ok": True, "bpm": valor})
 
     except Exception as e:
-
         print("ERRO BPM:", e)
-
-        return jsonify({
-            "erro": str(e)
-        }), 500
-
+        return jsonify({"erro": str(e)}), 500
 # ---------------------------------------------------
 # CADASTRO CUIDADOR
 # ---------------------------------------------------
@@ -431,9 +406,15 @@ def resumo_diario(cd_paciente):
         sql = """
         SELECT
 
-            DATE(dt_hr_batimentos) AS data,
+            DATE_FORMAT(
+                DATE(dt_hr_batimentos),
+                '%d/%m/%Y'
+            ) AS data,
 
-            AVG(btm_batimentos) AS media,
+            ROUND(
+                AVG(btm_batimentos),
+                0
+            ) AS media,
 
             MAX(btm_batimentos) AS maximo,
 
@@ -442,10 +423,9 @@ def resumo_diario(cd_paciente):
         FROM batimentos
 
         WHERE cd_paciente = %s
+        AND DATE(dt_hr_batimentos) = CURDATE()
 
         GROUP BY DATE(dt_hr_batimentos)
-
-        ORDER BY data DESC
         """
 
         cursor.execute(sql, (cd_paciente,))
@@ -464,7 +444,6 @@ def resumo_diario(cd_paciente):
         return jsonify({
             "erro": str(e)
         }), 500
-
 # ---------------------------------------------------
 # RESUMO SEMANAL
 # ---------------------------------------------------
@@ -518,6 +497,115 @@ def resumo_semanal(cd_paciente):
             "erro": str(e)
         }), 500
 
+
+
+# ---------------------------------------------------
+# RESUMO PDF
+# ---------------------------------------------------
+@app.route('/resumo-pdf/<int:cd_paciente>')
+def resumo_pdf(cd_paciente):
+
+    try:
+
+        db = conectar()
+        cursor = db.cursor(dictionary=True)
+
+        # -----------------------------------------
+        # BUSCAR NOME DO PACIENTE E CUIDADOR
+        # -----------------------------------------
+        cursor.execute("""
+            SELECT
+                p.nm_paciente,
+                c.nm_cuidador
+            FROM paciente p
+            INNER JOIN cuidador c ON c.cd_cuidador = p.cd_cuidador
+            WHERE p.cd_paciente = %s
+        """, (cd_paciente,))
+
+        pessoas = cursor.fetchone()
+
+        nm_paciente = pessoas['nm_paciente'] if pessoas else 'Desconhecido'
+        nm_cuidador = pessoas['nm_cuidador'] if pessoas else 'Desconhecido'
+
+        # -----------------------------------------
+        # RESUMO DOS DADOS
+        # -----------------------------------------
+        sql = """
+        SELECT
+            DATE_FORMAT(DATE(dt_hr_batimentos), '%d/%m/%Y') AS data,
+            ROUND(AVG(btm_batimentos), 0) AS media,
+            MAX(btm_batimentos) AS maximo,
+            MIN(btm_batimentos) AS minimo
+        FROM batimentos
+        WHERE cd_paciente = %s
+        GROUP BY DATE(dt_hr_batimentos)
+        ORDER BY DATE(dt_hr_batimentos) DESC
+        """
+
+        cursor.execute(sql, (cd_paciente,))
+        resumo = cursor.fetchall()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "paciente": nm_paciente,
+            "cuidador": nm_cuidador,
+            "dados": resumo
+        })
+
+    except Exception as e:
+        print("ERRO RESUMO PDF:", e)
+        return jsonify({"erro": str(e)}), 500
+
+
+
+
+
+# ---------------------------------------------------
+# PACIENTE DO CUIDADOR
+# ---------------------------------------------------
+@app.route('/paciente-cuidador/<int:cd_cuidador>')
+def paciente_cuidador(cd_cuidador):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        sql = """
+        SELECT
+            cd_paciente,
+            nm_paciente
+        FROM paciente
+        WHERE cd_cuidador = %s
+        LIMIT 1
+        """
+
+        cursor.execute(sql, (cd_cuidador,))
+
+        paciente = cursor.fetchone()
+
+        cursor.close()
+        db.close()
+
+        if paciente:
+
+            return jsonify(paciente)
+
+        return jsonify({
+            "erro": "Paciente não encontrado"
+        }), 404
+
+    except Exception as e:
+
+        print("ERRO PACIENTE CUIDADOR:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+    
 # ---------------------------------------------------
 # START SERVER
 # ---------------------------------------------------
