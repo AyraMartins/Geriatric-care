@@ -28,15 +28,15 @@
           <th>Mín</th>
         </tr>
 
-        <tr *ngFor="let item of resumoDiario">
+  <tr *ngIf="resumoDiario.length > 0">
 
-  <td>{{ item.data | date:'dd/MM/yyyy' }}</td>
+  <td>{{ resumoDiario[0].data }}</td>
 
-  <td>{{ item.media | number:'1.0-0' }}</td>
+  <td>{{ resumoDiario[0].media }}</td>
 
-  <td>{{ item.maximo }}</td>
+  <td>{{ resumoDiario[0].maximo }}</td>
 
-  <td>{{ item.minimo }}</td>
+  <td>{{ resumoDiario[0].minimo }}</td>
 
 </tr>
 
