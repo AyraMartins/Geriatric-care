@@ -1,24 +1,123 @@
+/* =======================================
+DARK MODE
+======================================= */
 
-
-/* DARK MODE FORÇADO */
 body.dark ion-content {
-  --background: #121212;
+  --background: #1f1f1f;
+}
+
+body.dark ion-item {
+  --background: #2a2a2a;
+  --color: #ffffff;
 }
 
 body.dark ion-list {
   background: transparent;
 }
 
-/* ITENS */
-body.dark ion-item {
-  --background: #1e1e1e;
-  --color: #ffffff;
-}
-
-/* TEXTOS */
 body.dark ion-label,
 body.dark ion-label h2,
-body.dark ion-label p {
+body.dark ion-label p,
+body.dark ion-title,
+body.dark h2,
+body.dark p,
+body.dark strong {
   color: #ffffff !important;
 }
 
+/* =======================================
+CARDS
+======================================= */
+
+ion-card {
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+body.dark ion-card {
+  --background: #2d2d2d;
+}
+
+body.dark ion-card-title,
+body.dark ion-card-subtitle,
+body.dark ion-card-content,
+body.dark ion-card p {
+  color: #ffffff !important;
+}
+
+/* =======================================
+INPUTS
+======================================= */
+
+ion-input,
+ion-select {
+  --highlight-color-focused: #c62828;
+  --highlight-color-valid: #c62828;
+  --highlight-color-invalid: #c62828;
+
+  --border-color: transparent;
+  --border-color-focused: transparent;
+
+  --padding-start: 0;
+
+  margin-top: 10px;
+}
+
+/* LABEL CLARO */
+
+ion-input::part(label),
+ion-select::part(label) {
+  color: #666;
+}
+
+/* LABEL ESCURO */
+
+body.dark ion-input::part(label),
+body.dark ion-select::part(label) {
+  color: #ffffff;
+}
+
+/* TEXTO INPUT */
+
+body.dark ion-input,
+body.dark ion-select {
+  color: white;
+}
+
+/* FUNDO INPUT DARK */
+
+body.dark ion-input,
+body.dark ion-select {
+  --background: #3a3a3a;
+  border-radius: 12px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* =======================================
+BOTÕES
+======================================= */
+
+.botao-salvar {
+  --background: #c62828;
+}
+
+.botao-cancelar {
+  --background: #6b6b6b;
+}
+
+/* =======================================
+SELECT ACTION SHEET
+======================================= */
+
+.action-sheet-group {
+  --color: #c62828 !important;
+}
+
+.action-sheet-button {
+  color: #c62828 !important;
+}
+
+.action-sheet-selected {
+  color: #c62828 !important;
+}

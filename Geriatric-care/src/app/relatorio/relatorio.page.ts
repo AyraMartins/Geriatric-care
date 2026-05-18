@@ -297,4 +297,41 @@ private tema() {
         }, 400);
       });
   }
+
+// =========================
+// ENVIAR EMAIL MÉDICOS
+// =========================
+enviarMedicos() {
+
+  const cd_paciente =
+    localStorage.getItem('cd_paciente');
+
+  this.http.post(
+
+    `http://localhost:5000/enviar-medicos/${cd_paciente}`,
+
+    {}
+
+  ).subscribe({
+
+    next: (res: any) => {
+
+      console.log(res);
+
+      alert(
+        'Resumo enviado para os médicos'
+      );
+    },
+
+    error: (err) => {
+
+      console.log(err);
+
+      alert(
+        'Erro ao enviar email'
+      );
+    }
+  });
+}
+
 }

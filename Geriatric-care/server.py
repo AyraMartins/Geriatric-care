@@ -1,6 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests
 import mysql.connector
+import resend
+
+resend.api_key = "re_fwMTFvpM_7FKiehH7fDukDnm7Z3yEkVc5";
 
 # ---------------------------------------------------
 # APP
@@ -19,11 +23,204 @@ def conectar():
         password="",
         database="banco_geriatric_care"
     )
+# ---------------------------------------------------
+# GERAR RESUMO DIÁRIO
+# ---------------------------------------------------
+def salvar_resumo_diario(cd_paciente):
 
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
+
+    sql = """
+    SELECT
+        ROUND(AVG(btm_batimentos), 0) AS media,
+        MAX(btm_batimentos) AS maximo,
+        MIN(btm_batimentos) AS minimo
+    FROM batimentos
+    WHERE cd_paciente = %s
+    AND DATE(dt_hr_batimentos) = CURDATE()
+    """
+
+    cursor.execute(sql, (cd_paciente,))
+
+    resumo = cursor.fetchone()
+
+    sql_delete = """
+    DELETE FROM resumo_diario
+    WHERE cd_paciente = %s
+    AND DATE(dt_resumo_diario) = CURDATE()
+    """
+
+    cursor.execute(sql_delete, (cd_paciente,))
+
+    sql_insert = """
+    INSERT INTO resumo_diario
+    (
+        dt_resumo_diario,
+        media_bpm,
+        max_bpm,
+        min_bpm,
+        cd_paciente
+    )
+    VALUES
+    (
+        NOW(),
+        %s,
+        %s,
+        %s,
+        %s
+    )
+    """
+
+    cursor.execute(sql_insert, (
+        resumo['media'],
+        resumo['maximo'],
+        resumo['minimo'],
+        cd_paciente
+    ))
+
+    db.commit()
+
+    cursor.close()
+    db.close()
+
+# ---------------------------------------------------
+# GERAR RESUMO HORÁRIO
+# ---------------------------------------------------
+def salvar_resumo_horario(cd_paciente):
+
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
+
+    sql = """
+    SELECT
+        ROUND(AVG(btm_batimentos), 0) AS media,
+        MAX(btm_batimentos) AS maximo,
+        MIN(btm_batimentos) AS minimo
+    FROM batimentos
+    WHERE cd_paciente = %s
+    AND DATE(dt_hr_batimentos) = CURDATE()
+    AND HOUR(dt_hr_batimentos) = HOUR(NOW())
+    """
+
+    cursor.execute(sql, (cd_paciente,))
+
+    resumo = cursor.fetchone()
+
+    sql_delete = """
+    DELETE FROM resumo_horario
+    WHERE cd_paciente = %s
+    AND data_resumo = CURDATE()
+    AND hora_resumo = HOUR(NOW())
+    """
+
+    cursor.execute(sql_delete, (cd_paciente,))
+
+    sql_insert = """
+    INSERT INTO resumo_horario
+    (
+        data_resumo,
+        hora_resumo,
+        media_bpm,
+        max_bpm,
+        min_bpm,
+        cd_paciente
+    )
+    VALUES
+    (
+        CURDATE(),
+        HOUR(NOW()),
+        %s,
+        %s,
+        %s,
+        %s
+    )
+    """
+
+    cursor.execute(sql_insert, (
+        resumo['media'],
+        resumo['maximo'],
+        resumo['minimo'],
+        cd_paciente
+    ))
+
+    db.commit()
+
+    cursor.close()
+    db.close()
+
+# ---------------------------------------------------
+# GERAR RESUMO SEMANAL
+# ---------------------------------------------------
+def salvar_resumo_semanal(cd_paciente):
+
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
+
+    sql = """
+    SELECT
+        ROUND(AVG(btm_batimentos), 0) AS media,
+        MAX(btm_batimentos) AS maximo,
+        MIN(btm_batimentos) AS minimo
+    FROM batimentos
+    WHERE cd_paciente = %s
+    AND YEARWEEK(dt_hr_batimentos, 1) = YEARWEEK(NOW(), 1)
+    """
+
+    cursor.execute(sql, (cd_paciente,))
+
+    resumo = cursor.fetchone()
+
+    sql_delete = """
+    DELETE FROM resumo_semanal
+    WHERE cd_paciente = %s
+    AND semana_resumo_semanal = WEEK(NOW())
+    AND ano_resumo_semanal = YEAR(NOW())
+    """
+
+    cursor.execute(sql_delete, (cd_paciente,))
+
+    sql_insert = """
+    INSERT INTO resumo_semanal
+    (
+        semana_resumo_semanal,
+        ano_resumo_semanal,
+        media_bpm,
+        max_bpm,
+        min_bpm,
+        cd_paciente
+    )
+    VALUES
+    (
+        WEEK(NOW()),
+        YEAR(NOW()),
+        %s,
+        %s,
+        %s,
+        %s
+    )
+    """
+
+    cursor.execute(sql_insert, (
+        resumo['media'],
+        resumo['maximo'],
+        resumo['minimo'],
+        cd_paciente
+    ))
+
+    db.commit()
+
+    cursor.close()
+    db.close()
 # ---------------------------------------------------
 # BPM TEMPORÁRIO
 # ---------------------------------------------------
 dados = []
+
+# ---------------------------------------------------
+# CUIDADOR ATUAL
+# ---------------------------------------------------
+cuidador_atual = None
 
 # ---------------------------------------------------
 # HOME
@@ -37,6 +234,21 @@ def home():
     })
 
 # ---------------------------------------------------
+# DEFINIR CUIDADOR ATUAL
+# ---------------------------------------------------
+@app.route('/set-cuidador/<int:cd>')
+def set_cuidador(cd):
+
+    global cuidador_atual
+
+    cuidador_atual = cd
+
+    return jsonify({
+        "ok": True,
+        "cd_cuidador": cuidador_atual
+    })
+
+# ---------------------------------------------------
 # RECEBER BPM ESP32
 # ---------------------------------------------------
 @app.route('/bpm')
@@ -44,55 +256,37 @@ def bpm():
 
     try:
 
+        global cuidador_atual
+
         valor = request.args.get('valor', '').strip()
-        cd_cuidador = request.args.get('cd_cuidador')
 
         print("RAW RECEBIDO:", valor)
-        print("CUIDADOR:", cd_cuidador)
+        print("CUIDADOR ATUAL:", cuidador_atual)
 
-        # -----------------------------------------
-        # VALIDAÇÕES
-        # -----------------------------------------
         if not valor:
-            return jsonify({
-                "erro": "valor vazio"
-            }), 400
-
-        if not cd_cuidador:
-            return jsonify({
-                "erro": "cd_cuidador vazio"
-            }), 400
+            return jsonify({"erro": "valor vazio"}), 400
 
         try:
-
             valor = int(valor)
-            cd_cuidador = int(cd_cuidador)
 
         except:
+            return jsonify({"erro": "valor inválido"}), 400
 
-            return jsonify({
-                "erro": "valor inválido"
-            }), 400
-
-        # -----------------------------------------
-        # CONEXÃO
-        # -----------------------------------------
         db = conectar()
 
-        cursor = db.cursor(dictionary=True)
+        cursor = db.cursor()
 
         # -----------------------------------------
-        # BUSCAR PACIENTE PELO CUIDADOR
+        # BUSCAR PACIENTE DO CUIDADOR
         # -----------------------------------------
         sql_paciente = """
-        SELECT
-            cd_paciente
+        SELECT cd_paciente
         FROM paciente
         WHERE cd_cuidador = %s
         LIMIT 1
         """
 
-        cursor.execute(sql_paciente, (cd_cuidador,))
+        cursor.execute(sql_paciente, (cuidador_atual,))
 
         paciente = cursor.fetchone()
 
@@ -105,10 +299,9 @@ def bpm():
                 "erro": "Paciente não encontrado"
             }), 404
 
-        # -----------------------------------------
-        # PEGA CD PACIENTE
-        # -----------------------------------------
-        cd_paciente = paciente['cd_paciente']
+        cd_paciente = paciente[0]
+
+        print("CD PACIENTE:", cd_paciente)
 
         # -----------------------------------------
         # BPM TEMPORÁRIO
@@ -136,6 +329,12 @@ def bpm():
         cursor.execute(sql, (valor, cd_paciente))
 
         db.commit()
+# -----------------------------------------
+# ATUALIZAR RESUMOS
+# -----------------------------------------
+        salvar_resumo_diario(cd_paciente)
+        salvar_resumo_horario(cd_paciente)
+        salvar_resumo_semanal(cd_paciente)
 
         cursor.close()
         db.close()
@@ -154,8 +353,6 @@ def bpm():
             "erro": str(e)
         }), 500
 
-
-        
 # ---------------------------------------------------
 # CADASTRO CUIDADOR
 # ---------------------------------------------------
@@ -227,6 +424,8 @@ def validar_login():
 
     try:
 
+        global cuidador_atual
+
         data = request.json
 
         email = data.get('email')
@@ -256,12 +455,19 @@ def validar_login():
         db.close()
 
         if cuidador:
+
+            cuidador_atual = cuidador['cd_cuidador']
+
+            print("CUIDADOR LOGADO:", cuidador_atual)
+
             return jsonify({
                 "valido": True,
                 "cd_cuidador": cuidador['cd_cuidador'],
                 "nm_cuidador": cuidador['nm_cuidador']
             })
+
         else:
+
             return jsonify({
                 "valido": False,
                 "erro": "Email ou senha inválidos"
@@ -467,6 +673,7 @@ def grafico_semana(cd_paciente):
         return jsonify({
             "erro": str(e)
         }), 500
+
 # ---------------------------------------------------
 # RESUMO DIÁRIO
 # ---------------------------------------------------
@@ -520,6 +727,7 @@ def resumo_diario(cd_paciente):
         return jsonify({
             "erro": str(e)
         }), 500
+
 # ---------------------------------------------------
 # RESUMO SEMANAL
 # ---------------------------------------------------
@@ -573,8 +781,6 @@ def resumo_semanal(cd_paciente):
             "erro": str(e)
         }), 500
 
-
-
 # ---------------------------------------------------
 # RESUMO PDF
 # ---------------------------------------------------
@@ -586,9 +792,6 @@ def resumo_pdf(cd_paciente):
         db = conectar()
         cursor = db.cursor(dictionary=True)
 
-        # -----------------------------------------
-        # BUSCAR NOME DO PACIENTE E CUIDADOR
-        # -----------------------------------------
         cursor.execute("""
             SELECT
                 p.nm_paciente,
@@ -603,9 +806,6 @@ def resumo_pdf(cd_paciente):
         nm_paciente = pessoas['nm_paciente'] if pessoas else 'Desconhecido'
         nm_cuidador = pessoas['nm_cuidador'] if pessoas else 'Desconhecido'
 
-        # -----------------------------------------
-        # RESUMO DOS DADOS
-        # -----------------------------------------
         sql = """
         SELECT
             DATE_FORMAT(DATE(dt_hr_batimentos), '%d/%m/%Y') AS data,
@@ -631,12 +831,12 @@ def resumo_pdf(cd_paciente):
         })
 
     except Exception as e:
+
         print("ERRO RESUMO PDF:", e)
-        return jsonify({"erro": str(e)}), 500
 
-
-
-
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
 # ---------------------------------------------------
 # PACIENTE DO CUIDADOR
@@ -681,7 +881,374 @@ def paciente_cuidador(cd_cuidador):
         return jsonify({
             "erro": str(e)
         }), 500
-    
+
+# ---------------------------------------------------
+# LISTAR CUIDADORES EXTRAS
+# ---------------------------------------------------
+@app.route('/cuidadores-extra/<int:cd_paciente>')
+def listar_cuidadores_extra(cd_paciente):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        sql = """
+        SELECT
+
+            ce.cd_cuidador_extra,
+            ce.nm_cuidador,
+            ce.email_cuidador,
+            ce.tel_cuidador,
+            ce.cd_tipo,
+            tc.nm_tipo
+
+        FROM cuidador_extra ce
+
+        INNER JOIN tipo_cuidador tc
+        ON tc.cd_tipo = ce.cd_tipo
+
+        WHERE ce.cd_paciente = %s
+
+        ORDER BY ce.cd_cuidador_extra DESC
+        """
+
+        cursor.execute(sql, (cd_paciente,))
+
+        dados = cursor.fetchall()
+
+        cursor.close()
+        db.close()
+
+        return jsonify(dados)
+
+    except Exception as e:
+
+        print("ERRO LISTAR CUIDADORES:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# CADASTRAR CUIDADOR EXTRA
+# ---------------------------------------------------
+@app.route('/cuidadores-extra', methods=['POST'])
+def cadastrar_cuidador_extra():
+
+    try:
+
+        data = request.json
+
+        db = conectar()
+
+        cursor = db.cursor()
+
+        sql = """
+        INSERT INTO cuidador_extra
+        (
+            nm_cuidador,
+            email_cuidador,
+            tel_cuidador,
+            cd_tipo,
+            cd_paciente
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        )
+        """
+
+        valores = (
+            data['nome'],
+            data['email'],
+            data['telefone'],
+            data['cd_tipo'],
+            data['cd_paciente']
+        )
+
+        cursor.execute(sql, valores)
+
+        db.commit()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True
+        })
+
+    except Exception as e:
+
+        print("ERRO CADASTRAR EXTRA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# EDITAR CUIDADOR EXTRA
+# ---------------------------------------------------
+@app.route('/cuidadores-extra/<int:id>', methods=['PUT'])
+def editar_cuidador_extra(id):
+
+    try:
+
+        data = request.json
+
+        db = conectar()
+
+        cursor = db.cursor()
+
+        sql = """
+        UPDATE cuidador_extra
+        SET
+            nm_cuidador = %s,
+            email_cuidador = %s,
+            tel_cuidador = %s,
+            cd_tipo = %s
+        WHERE cd_cuidador_extra = %s
+        """
+
+        valores = (
+            data['nome'],
+            data['email'],
+            data['telefone'],
+            data['cd_tipo'],
+            id
+        )
+
+        cursor.execute(sql, valores)
+
+        db.commit()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True
+        })
+
+    except Exception as e:
+
+        print("ERRO EDITAR EXTRA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# EXCLUIR CUIDADOR EXTRA
+# ---------------------------------------------------
+@app.route('/cuidadores-extra/<int:id>', methods=['DELETE'])
+def excluir_cuidador_extra(id):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor()
+
+        sql = """
+        DELETE FROM cuidador_extra
+        WHERE cd_cuidador_extra = %s
+        """
+
+        cursor.execute(sql, (id,))
+
+        db.commit()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True
+        })
+
+    except Exception as e:
+
+        print("ERRO EXCLUIR EXTRA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# ENVIAR EMAIL PARA MÉDICOS
+# ---------------------------------------------------
+@app.route('/enviar-medicos/<int:cd_paciente>', methods=['POST'])
+def enviar_medicos(cd_paciente):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        # -----------------------------------------
+        # BUSCAR MÉDICOS
+        # -----------------------------------------
+        sql_medicos = """
+        SELECT
+            nm_cuidador,
+            email_cuidador
+        FROM cuidador_extra
+        WHERE cd_paciente = %s
+        AND cd_tipo = 4
+        """
+
+        cursor.execute(sql_medicos, (cd_paciente,))
+
+        medicos = cursor.fetchall()
+
+        if not medicos:
+
+            cursor.close()
+            db.close()
+
+            return jsonify({
+                "erro": "Nenhum médico encontrado"
+            }), 404
+
+        # -----------------------------------------
+        # BUSCAR PACIENTE
+        # -----------------------------------------
+        sql_paciente = """
+        SELECT
+            p.nm_paciente,
+            c.nm_cuidador
+        FROM paciente p
+
+        INNER JOIN cuidador c
+        ON c.cd_cuidador = p.cd_cuidador
+
+        WHERE p.cd_paciente = %s
+        """
+
+        cursor.execute(sql_paciente, (cd_paciente,))
+
+        pessoa = cursor.fetchone()
+
+        nm_paciente = pessoa['nm_paciente']
+        nm_cuidador = pessoa['nm_cuidador']
+
+        # -----------------------------------------
+        # BUSCAR RESUMO
+        # -----------------------------------------
+        sql = """
+        SELECT
+
+            DATE_FORMAT(
+                DATE(dt_hr_batimentos),
+                '%d/%m/%Y'
+            ) AS data,
+
+            ROUND(
+                AVG(btm_batimentos),
+                0
+            ) AS media,
+
+            MAX(btm_batimentos) AS maximo,
+
+            MIN(btm_batimentos) AS minimo
+
+        FROM batimentos
+
+        WHERE cd_paciente = %s
+
+        GROUP BY DATE(dt_hr_batimentos)
+
+        ORDER BY DATE(dt_hr_batimentos) DESC
+        """
+
+        cursor.execute(sql, (cd_paciente,))
+
+        resumo = cursor.fetchall()
+
+        cursor.close()
+        db.close()
+
+        # -----------------------------------------
+        # HTML EMAIL
+        # -----------------------------------------
+        html = f"""
+        <h2>Relatório BPM</h2>
+
+        <p>
+            <b>Paciente:</b> {nm_paciente}
+        </p>
+
+        <p>
+            <b>Cuidador:</b> {nm_cuidador}
+        </p>
+
+        <table border="1" cellpadding="8">
+
+            <tr>
+                <th>Data</th>
+                <th>Média</th>
+                <th>Máximo</th>
+                <th>Mínimo</th>
+            </tr>
+        """
+
+        for item in resumo:
+
+            html += f"""
+            <tr>
+                <td>{item['data']}</td>
+                <td>{item['media']}</td>
+                <td>{item['maximo']}</td>
+                <td>{item['minimo']}</td>
+            </tr>
+            """
+
+        html += "</table>"
+
+        # -----------------------------------------
+        # ENVIAR EMAILS
+        # -----------------------------------------
+        enviados = []
+
+        for medico in medicos:
+
+            resend.Emails.send({
+
+                "from": "onboarding@resend.dev",
+
+                "to": medico['email_cuidador'],
+
+                "subject": f"Relatório BPM - {nm_paciente}",
+
+                "html": html
+            })
+
+            enviados.append(
+                medico['email_cuidador']
+            )
+
+        return jsonify({
+            "ok": True,
+            "emails_enviados": enviados
+        })
+
+    except Exception as e:
+
+        print("ERRO ENVIAR MÉDICOS:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
 # ---------------------------------------------------
 # START SERVER
 # ---------------------------------------------------

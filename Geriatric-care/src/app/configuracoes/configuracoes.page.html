@@ -1,14 +1,22 @@
 <ion-header [translucent]="true">
+
   <ion-toolbar>
-    <ion-title>Geriatric care</ion-title>
+
+    <ion-title>
+      Geriatric care
+    </ion-title>
+
   </ion-toolbar>
+
 </ion-header>
 
 <ion-content>
 
+  <!-- LISTA -->
+
   <ion-list [inset]="true">
 
-    <!-- MODO ESCURO -->
+    <!-- DARK MODE -->
 
     <ion-item>
 
@@ -19,9 +27,13 @@
 
       <ion-label>
 
-        <h2>Modo Escuro</h2>
+        <h2>
+          Modo Escuro
+        </h2>
 
-        <p>Ativar tema escuro no aplicativo</p>
+        <p>
+          Ativar tema escuro
+        </p>
 
       </ion-label>
 
@@ -33,24 +45,33 @@
 
     </ion-item>
 
-    <!-- OUTRAS CONFIGURAÇÕES -->
+    <!-- CONFIGS -->
 
-    <ion-item-sliding *ngFor="let item of configuracoes">
+    <ion-item-sliding
+      *ngFor="let item of configuracoes">
 
-      <ion-item button="true">
+      <ion-item
+        button="true"
+        (click)="abrirModal(item)">
 
-  <ion-icon
-    slot="start"
-    [name]="item.icone"
-    class="icon">
-  </ion-icon>
+        <ion-icon
+          slot="start"
+          [name]="item.icone" class="icon">
+        </ion-icon>
 
-  <ion-label>
-    <h2>{{ item.nome }}</h2>
-    <p>{{ item.descricao }}</p>
-  </ion-label>
+        <ion-label>
 
-</ion-item>
+          <h2>
+            {{ item.nome }}
+          </h2>
+
+          <p>
+            {{ item.descricao }}
+          </p>
+
+        </ion-label>
+
+      </ion-item>
 
       <ion-item-options slot="end">
 
@@ -58,28 +79,16 @@
 
           <ion-icon
             slot="icon-only"
-            name="create-outline" class="icon">
+            name="create-outline">
           </ion-icon>
 
         </ion-item-option>
 
-        <ion-item-option color="tertiary">
+        <ion-item-option color="danger">
 
           <ion-icon
             slot="icon-only"
-            name="share-outline" class="icon" >
-          </ion-icon>
-
-        </ion-item-option>
-
-        <ion-item-option
-          color="danger"
-          expandable="true"
-          (click)="excluir(item)">
-
-          <ion-icon
-            slot="icon-only"
-            name="trash-outline" class="icon">
+            name="trash-outline">
           </ion-icon>
 
         </ion-item-option>
@@ -89,5 +98,374 @@
     </ion-item-sliding>
 
   </ion-list>
+
+  <!-- MODAL CONTA -->
+
+  <ion-modal [isOpen]="modalConta">
+
+    <ng-template>
+
+      <ion-header>
+
+        <ion-toolbar>
+
+          <ion-title>
+            Conta
+          </ion-title>
+
+        </ion-toolbar>
+
+      </ion-header>
+
+      <ion-content class="ion-padding">
+
+        <h2>
+          Gerenciar Conta
+        </h2>
+
+        <p>
+          Configurações da conta.
+        </p>
+
+        <ion-button
+          expand="block"
+          color="danger"
+          (click)="fecharModais()">
+
+          Fechar
+
+        </ion-button>
+
+      </ion-content>
+
+    </ng-template>
+
+  </ion-modal>
+
+  <!-- MODAL CUIDADORES -->
+
+  <ion-modal [isOpen]="modalCuidadores">
+
+    <ng-template>
+
+      <ion-header>
+
+        <ion-toolbar>
+
+          <ion-title>
+            Cuidadores
+          </ion-title>
+
+        </ion-toolbar>
+
+      </ion-header>
+
+      <ion-content class="ion-padding">
+
+        <!-- TOPO -->
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+          ">
+
+          <div>
+
+            <h2 style="margin:0;">
+              Gerenciar Cuidadores
+            </h2>
+
+            <p style="margin-top:5px;">
+              Cuidadores cadastrados
+            </p>
+
+          </div>
+
+          <ion-icon
+            name="person-add-outline"
+            style="
+              font-size:30px;
+              color:#c62828;
+            "
+            (click)="abrirNovoCuidador()">
+          </ion-icon>
+
+        </div>
+
+        <!-- CARDS -->
+
+       <!-- CARDS -->
+
+<ion-card
+  *ngFor="let cuidador of cuidadoresExtras">
+
+  <ion-card-header>
+
+    <ion-card-title>
+
+      {{ cuidador.nm_cuidador }}
+
+    </ion-card-title>
+
+    <ion-card-subtitle>
+
+      {{ cuidador.nm_tipo }}
+
+    </ion-card-subtitle>
+
+  </ion-card-header>
+
+  <ion-card-content>
+
+    <p>
+
+      <strong>Email:</strong>
+
+      {{ cuidador.email_cuidador }}
+
+    </p>
+
+    <p>
+
+      <strong>Telefone:</strong>
+
+      {{ cuidador.tel_cuidador }}
+
+    </p>
+
+    <div
+      style="
+        display:flex;
+        justify-content:flex-end;
+        gap:10px;
+        margin-top:15px;
+      ">
+
+      <!-- EDITAR -->
+
+      <ion-button
+        fill="clear"
+        color="danger"
+        (click)="editarCuidador(cuidador)">
+
+        <ion-icon
+          name="create-outline">
+        </ion-icon>
+
+      </ion-button>
+
+      <!-- EXCLUIR -->
+
+      <ion-button
+        fill="clear"
+        color="danger"
+        (click)="excluirCuidador(cuidador.cd_cuidador_extra)">
+
+        <ion-icon
+          name="trash-outline">
+        </ion-icon>
+
+      </ion-button>
+
+    </div>
+
+  </ion-card-content>
+
+</ion-card>
+
+        <!-- VAZIO -->
+
+        <div
+          *ngIf="cuidadoresExtras.length === 0"
+          style="
+            text-align:center;
+            margin-top:40px;
+            opacity:0.7;
+          ">
+
+          <ion-icon
+            name="people-outline"
+            style="font-size:70px;">
+          </ion-icon>
+
+          <p>
+            Nenhum cuidador cadastrado
+          </p>
+
+        </div>
+
+        <br>
+
+        <ion-button
+          expand="block"
+          color="danger"
+          (click)="fecharModais()">
+
+          Fechar
+
+        </ion-button>
+
+      </ion-content>
+
+    </ng-template>
+
+  </ion-modal>
+
+  <!-- MODAL NOVO -->
+
+  <ion-modal [isOpen]="modalNovoCuidador">
+
+    <ng-template>
+
+      <ion-header>
+
+        <ion-toolbar>
+
+          <ion-title>
+            Novo Cuidador
+          </ion-title>
+
+        </ion-toolbar>
+
+      </ion-header>
+
+      <ion-content class="ion-padding">
+
+        <!-- NOME -->
+
+        <ion-input
+          class="input-vermelho"
+          label="Nome"
+          labelPlacement="floating"
+          [(ngModel)]="novoCuidador.nome">
+        </ion-input>
+
+        <br>
+
+        <!-- EMAIL -->
+
+        <ion-input
+          class="input-vermelho"
+          type="email"
+          label="Email"
+          labelPlacement="floating"
+          [(ngModel)]="novoCuidador.email">
+        </ion-input>
+
+        <br>
+
+        <!-- TELEFONE -->
+
+        <ion-input
+          class="input-vermelho"
+          type="tel"
+          label="Telefone"
+          labelPlacement="floating"
+          [(ngModel)]="novoCuidador.telefone">
+        </ion-input>
+
+        <br>
+
+        <!-- TIPO -->
+
+        <ion-select
+          class="input-vermelho"
+          label="Tipo"
+          labelPlacement="floating"
+          [(ngModel)]="novoCuidador.cd_tipo">
+
+          <ion-select-option value="">
+            Selecione
+          </ion-select-option>
+
+          <ion-select-option value="2">
+            Secundário
+          </ion-select-option>
+
+          <ion-select-option value="3">
+            Contratado
+          </ion-select-option>
+
+          <ion-select-option value="4">
+            Médico
+          </ion-select-option>
+
+        </ion-select>
+
+        <br><br>
+
+        <!-- SALVAR -->
+
+        <ion-button
+          expand="block"
+          color="danger"
+          (click)="salvarNovoCuidador()">
+
+          Salvar
+
+        </ion-button>
+
+        <!-- CANCELAR -->
+
+        <ion-button
+          expand="block"
+          color="medium"
+          (click)="fecharNovoCuidador()">
+
+          Cancelar
+
+        </ion-button>
+
+      </ion-content>
+
+    </ng-template>
+
+  </ion-modal>
+
+  <!-- MODAL AJUDA -->
+
+  <ion-modal [isOpen]="modalAjuda">
+
+    <ng-template>
+
+      <ion-header>
+
+        <ion-toolbar>
+
+          <ion-title>
+            Ajuda
+          </ion-title>
+
+        </ion-toolbar>
+
+      </ion-header>
+
+      <ion-content class="ion-padding">
+
+        <h2>
+          Central de Ajuda
+        </h2>
+
+        <p>
+          Aqui ficará o suporte.
+        </p>
+
+        <ion-button
+          expand="block"
+          color="danger"
+          (click)="fecharModais()">
+
+          Fechar
+
+        </ion-button>
+
+      </ion-content>
+
+    </ng-template>
+
+  </ion-modal>
 
 </ion-content>
