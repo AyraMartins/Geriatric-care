@@ -1,0 +1,24 @@
+
+
+/* DARK MODE FORÇADO */
+body.dark ion-content {
+  --background: #121212;
+}
+
+body.dark ion-list {
+  background: transparent;
+}
+
+/* ITENS */
+body.dark ion-item {
+  --background: #1e1e1e;
+  --color: #ffffff;
+}
+
+/* TEXTOS */
+body.dark ion-label,
+body.dark ion-label h2,
+body.dark ion-label p {
+  color: #ffffff !important;
+}
+

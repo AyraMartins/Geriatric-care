@@ -13,7 +13,8 @@ import {
   IonItem,
   IonList,
   IonButton,
-  IonModal
+  IonModal,
+  IonText
 } from '@ionic/angular/standalone';
 
 @Component({
@@ -31,6 +32,7 @@ import {
     IonList,
     IonButton,
     IonModal,
+    IonText,
     CommonModule,
     FormsModule
   ]
@@ -49,48 +51,41 @@ export class LoginPage {
   emailLogin = '';
   senhaLogin = '';
 
+  // touched (validação visual)
+  nomeTouched = false;
+  emailTouched = false;
+  telefoneTouched = false;
+  senhaTouched = false;
+
   constructor(
     private http: HttpClient,
     private router: Router
   ) {}
 
-  // -------------------------
-  // ALERT SIMPLES (faltava isso)
-  // -------------------------
+  // ALERT SIMPLES
   showAlert(titulo: string, msg: string) {
     alert(`${titulo}\n\n${msg}`);
   }
 
-  // -------------------------
-  // ABRIR MODAL LOGIN
-  // -------------------------
+  // ABRIR LOGIN
   abrirLogin(ev?: Event) {
     ev?.preventDefault?.();
-    (document.activeElement as HTMLElement)?.blur();
     this.mostrarModalLogin = true;
   }
 
-  // -------------------------
-  // FECHAR MODAL LOGIN
-  // -------------------------
+  // FECHAR LOGIN
   async fecharLogin() {
     this.mostrarModalLogin = false;
-    await new Promise(r => setTimeout(r, 50));
-    (document.activeElement as HTMLElement)?.blur();
     this.emailLogin = '';
     this.senhaLogin = '';
   }
 
-  // -------------------------
   // VALIDA CADASTRO
-  // -------------------------
   formValido() {
     return this.nome && this.email && this.telefone && this.senha;
   }
 
-  // -------------------------
-  // SALVAR CUIDADOR
-  // -------------------------
+  // SALVAR
   salvarCuidador() {
 
     const dados = {
@@ -111,52 +106,46 @@ export class LoginPage {
       });
   }
 
-  // -------------------------
   // LOGIN
-  // -------------------------
   handleLogin() {
+
+    if (!this.emailLogin) {
+      this.showAlert('Erro', 'Digite o email');
+      return;
+    }
+
+    if (!this.senhaLogin) {
+      this.showAlert('Erro', 'Digite a senha');
+      return;
+    }
 
     const data = {
       email: this.emailLogin,
       senha: this.senhaLogin
     };
 
-    if (!data.email) {
-      this.showAlert('Campo obrigatório', 'Digite o email.');
-      return;
-    }
+    this.http.post<any>('http://localhost:5000/validar-login', data)
+      .subscribe({
 
-    if (!data.senha) {
-      this.showAlert('Campo obrigatório', 'Digite a senha.');
-      return;
-    }
+        next: (res) => {
 
-    this.http.post<any>(
-      'http://localhost:5000/validar-login',
-      data
-    )
-    .subscribe({
-
-      next: (res) => {
-
-        if (res.valido) {
+          if (!res.valido) {
+            this.showAlert('Erro', 'Email ou senha inválidos');
+            return;
+          }
 
           localStorage.setItem('cuidadorLogado', 'true');
           localStorage.setItem('email', data.email);
           localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
 
-          // -------------------------
-          // BUSCA PACIENTE
-          // -------------------------
           this.http.get<any>(
             `http://localhost:5000/paciente-cuidador/${res.cd_cuidador}`
-          )
-          .subscribe({
+          ).subscribe({
 
             next: (paciente) => {
 
               if (!paciente?.cd_paciente) {
-                this.showAlert('Erro', 'Paciente não encontrado.');
+                this.showAlert('Erro', 'Paciente não encontrado');
                 return;
               }
 
@@ -170,18 +159,15 @@ export class LoginPage {
             },
 
             error: () => {
-              this.showAlert('Erro', 'Paciente não encontrado.');
+              this.showAlert('Erro', 'Paciente não encontrado');
             }
           });
 
-        } else {
-          this.showAlert('Erro', 'Email ou senha inválidos.');
-        }
-      },
+        },
 
-      error: () => {
-        this.showAlert('Erro', 'Erro ao conectar com servidor.');
-      }
-    });
+        error: () => {
+          this.showAlert('Erro', 'Erro ao conectar com servidor');
+        }
+      });
   }
 }

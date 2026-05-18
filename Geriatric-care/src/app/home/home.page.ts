@@ -35,6 +35,7 @@ resumoDiario: any[] = [];
   }
 
  ngOnInit() {
+  this.aplicarTemaSalvo();
   console.log('HOME ngOnInit');
 
   const cdCuidador = localStorage.getItem('cd_cuidador');
@@ -86,6 +87,17 @@ resumoDiario: any[] = [];
       }, 0);
     })
   );
+}
+
+private aplicarTemaSalvo() {
+
+  const tema = localStorage.getItem('modoEscuro');
+
+  if (tema === 'true') {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
 }
 
   buscarResumoDiario() {

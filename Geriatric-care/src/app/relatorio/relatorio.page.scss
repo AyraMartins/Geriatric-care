@@ -20,3 +20,49 @@ canvas {
 
   max-height: 300px;
 }
+body.dark {
+
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  ion-label,
+  ion-card-subtitle {
+
+    color: white !important;
+
+  }
+
+}
+
+body.dark ion-card {
+  --background: #1e1e1e;
+  color: #ffffff;
+}
+
+/* TÍTULO DOS CARDS */
+body.dark ion-card-title {
+  color: #ffffff !important;
+}
+
+body.dark ion-card-subtitle {
+  color: #cccccc !important;
+}
+
+/* TEXTO NORMAL */
+body.dark ion-card-content {
+  color: #ffffff !important;
+}body.dark ion-card {
+  background: #1e1e1e !important;
+  color: white !important;
+}
+
+body.dark ion-card-title,
+body.dark ion-card-subtitle {
+  color: white !important;
+}
+
+body.dark ion-card-content {
+  color: white !important;
+}

@@ -1,0 +1,93 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Geriatric care</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-list [inset]="true">
+
+    <!-- MODO ESCURO -->
+
+    <ion-item>
+
+      <ion-icon
+        name="moon-outline"
+        slot="start" class="icon">
+      </ion-icon>
+
+      <ion-label>
+
+        <h2>Modo Escuro</h2>
+
+        <p>Ativar tema escuro no aplicativo</p>
+
+      </ion-label>
+
+      <ion-toggle
+        slot="end"
+        [checked]="modoEscuro"
+        (ionChange)="trocarTema()">
+      </ion-toggle>
+
+    </ion-item>
+
+    <!-- OUTRAS CONFIGURAÇÕES -->
+
+    <ion-item-sliding *ngFor="let item of configuracoes">
+
+      <ion-item button="true">
+
+  <ion-icon
+    slot="start"
+    [name]="item.icone"
+    class="icon">
+  </ion-icon>
+
+  <ion-label>
+    <h2>{{ item.nome }}</h2>
+    <p>{{ item.descricao }}</p>
+  </ion-label>
+
+</ion-item>
+
+      <ion-item-options slot="end">
+
+        <ion-item-option color="warning">
+
+          <ion-icon
+            slot="icon-only"
+            name="create-outline" class="icon">
+          </ion-icon>
+
+        </ion-item-option>
+
+        <ion-item-option color="tertiary">
+
+          <ion-icon
+            slot="icon-only"
+            name="share-outline" class="icon" >
+          </ion-icon>
+
+        </ion-item-option>
+
+        <ion-item-option
+          color="danger"
+          expandable="true"
+          (click)="excluir(item)">
+
+          <ion-icon
+            slot="icon-only"
+            name="trash-outline" class="icon">
+          </ion-icon>
+
+        </ion-item-option>
+
+      </ion-item-options>
+
+    </ion-item-sliding>
+
+  </ion-list>
+
+</ion-content>

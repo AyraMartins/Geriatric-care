@@ -45,41 +45,117 @@ def bpm():
     try:
 
         valor = request.args.get('valor', '').strip()
+        cd_cuidador = request.args.get('cd_cuidador')
 
         print("RAW RECEBIDO:", valor)
+        print("CUIDADOR:", cd_cuidador)
 
+        # -----------------------------------------
+        # VALIDAÇÕES
+        # -----------------------------------------
         if not valor:
-            return jsonify({"erro": "valor vazio"}), 400
+            return jsonify({
+                "erro": "valor vazio"
+            }), 400
+
+        if not cd_cuidador:
+            return jsonify({
+                "erro": "cd_cuidador vazio"
+            }), 400
 
         try:
+
             valor = int(valor)
+            cd_cuidador = int(cd_cuidador)
+
         except:
-            return jsonify({"erro": "valor inválido"}), 400
 
-        cd_paciente = 3
+            return jsonify({
+                "erro": "valor inválido"
+            }), 400
 
+        # -----------------------------------------
+        # CONEXÃO
+        # -----------------------------------------
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        # -----------------------------------------
+        # BUSCAR PACIENTE PELO CUIDADOR
+        # -----------------------------------------
+        sql_paciente = """
+        SELECT
+            cd_paciente
+        FROM paciente
+        WHERE cd_cuidador = %s
+        LIMIT 1
+        """
+
+        cursor.execute(sql_paciente, (cd_cuidador,))
+
+        paciente = cursor.fetchone()
+
+        if not paciente:
+
+            cursor.close()
+            db.close()
+
+            return jsonify({
+                "erro": "Paciente não encontrado"
+            }), 404
+
+        # -----------------------------------------
+        # PEGA CD PACIENTE
+        # -----------------------------------------
+        cd_paciente = paciente['cd_paciente']
+
+        # -----------------------------------------
+        # BPM TEMPORÁRIO
+        # -----------------------------------------
         dados.append(valor)
 
-        db = conectar()
-        cursor = db.cursor()
-
+        # -----------------------------------------
+        # INSERT BATIMENTOS
+        # -----------------------------------------
         sql = """
         INSERT INTO batimentos
-        (btm_batimentos, dt_hr_batimentos, cd_paciente)
-        VALUES (%s, NOW(), %s)
+        (
+            btm_batimentos,
+            dt_hr_batimentos,
+            cd_paciente
+        )
+        VALUES
+        (
+            %s,
+            NOW(),
+            %s
+        )
         """
 
         cursor.execute(sql, (valor, cd_paciente))
 
         db.commit()
+
         cursor.close()
         db.close()
 
-        return jsonify({"ok": True, "bpm": valor})
+        return jsonify({
+            "ok": True,
+            "bpm": valor,
+            "cd_paciente": cd_paciente
+        })
 
     except Exception as e:
+
         print("ERRO BPM:", e)
-        return jsonify({"erro": str(e)}), 500
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+        
 # ---------------------------------------------------
 # CADASTRO CUIDADOR
 # ---------------------------------------------------

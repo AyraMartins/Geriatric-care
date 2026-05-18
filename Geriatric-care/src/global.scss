@@ -138,3 +138,35 @@ border-radius: 20px;
   font-weight: bold;
 }
 
+
+
+body.dark {
+  --ion-background-color: #121212;
+  --ion-text-color: #ffffff;
+
+  --ion-item-background: #1e1e1e;
+  --ion-card-background: #1e1e1e;
+}
+
+/* 🔥 FORÇA TUDO A HERDAR COR */
+body.dark ion-content,
+body.dark ion-page,
+body.dark ion-list,
+body.dark ion-item {
+  background: #121212 !important;
+  color: #ffffff !important;
+}
+
+/* TEXTO FORÇADO */
+body.dark h1,
+body.dark h2,
+body.dark h3,
+body.dark p,
+body.dark ion-label {
+  color: #ffffff !important;
+}
+body.dark ion-card-title,
+body.dark ion-card-header{
+  color: #ffffff !important;
+}
+

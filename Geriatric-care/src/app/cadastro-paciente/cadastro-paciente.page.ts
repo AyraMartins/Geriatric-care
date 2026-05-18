@@ -66,6 +66,7 @@ export class CadastroPacientePage implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.aplicarTemaSalvo();
 
     // PEGA ID DO CUIDADOR SALVO NO LOGIN
     const id = localStorage.getItem('cd_cuidador');
@@ -76,6 +77,16 @@ export class CadastroPacientePage implements OnInit {
 
     console.log('ID cuidador:', this.cdCuidador);
   }
+  private aplicarTemaSalvo() {
+
+  const tema = localStorage.getItem('modoEscuro');
+
+  if (tema === 'true') {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+}
 
   // PEGA DATA DO DATETIME
   pegarData(event: any) {

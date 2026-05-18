@@ -9,8 +9,9 @@ import {
   LineElement,
   PointElement,
   LinearScale,
-  Title,
-  CategoryScale
+  CategoryScale,
+  Legend,
+  Tooltip
 } from 'chart.js';
 
 import jsPDF from 'jspdf';
@@ -21,8 +22,9 @@ Chart.register(
   LineElement,
   PointElement,
   LinearScale,
-  Title,
-  CategoryScale
+  CategoryScale,
+  Legend,
+  Tooltip
 );
 
 @Component({
@@ -35,6 +37,7 @@ Chart.register(
 export class RelatorioPage implements OnInit {
 
   resumoDiario: any[] = [];
+
   graficoDia: any;
   graficoSemana: any;
 
@@ -46,15 +49,12 @@ export class RelatorioPage implements OnInit {
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
+    this.aplicarTemaSalvo();
 
-    const cdPaciente = localStorage.getItem('cd_paciente');
+    const id = localStorage.getItem('cd_paciente');
+    if (!id) return;
 
-    if (!cdPaciente) {
-      console.log('SEM PACIENTE NO LOCALSTORAGE');
-      return;
-    }
-
-    this.cdPaciente = Number(cdPaciente);
+    this.cdPaciente = Number(id);
 
     this.buscarDadosPessoa();
     this.buscarResumoDiario();
@@ -62,181 +62,239 @@ export class RelatorioPage implements OnInit {
     this.buscarGraficoSemana();
   }
 
-  // -----------------------------
-  // PACIENTE + CUIDADOR
-  // -----------------------------
+  private aplicarTemaSalvo() {
+
+  const tema = localStorage.getItem('modoEscuro');
+
+  if (tema === 'true') {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+}
+
+  // =========================
+  // PACIENTE
+  // =========================
   buscarDadosPessoa() {
-
-    this.http.get<any>(
-      `http://localhost:5000/paciente-info/${this.cdPaciente}`
-    ).subscribe(res => {
-
-      const data = Array.isArray(res) ? res[0] : res;
-
-      this.nomePaciente = data?.nm_paciente ?? 'Não informado';
-      this.nomeCuidador = data?.nm_cuidador ?? 'Não informado';
-
-    });
+    this.http.get<any>(`http://localhost:5000/paciente-info/${this.cdPaciente}`)
+      .subscribe(res => {
+        const data = Array.isArray(res) ? res[0] : res;
+        this.nomePaciente = data?.nm_paciente ?? '-';
+        this.nomeCuidador = data?.nm_cuidador ?? '-';
+      });
   }
 
-  // -----------------------------
-  // RESUMO
-  // -----------------------------
   buscarResumoDiario() {
-
-    this.http.get<any>(
-      `http://localhost:5000/resumo-diario/${this.cdPaciente}`
-    ).subscribe(res => {
-
-      this.resumoDiario = Array.isArray(res)
-        ? res
-        : (res?.data ?? []);
-
-    });
+    this.http.get<any>(`http://localhost:5000/resumo-diario/${this.cdPaciente}`)
+      .subscribe(res => {
+        this.resumoDiario = Array.isArray(res) ? res : (res?.data ?? []);
+      });
   }
 
-  // -----------------------------
-  // GRAFICO DIA
-  // -----------------------------
+  // =========================
+  // TEMA DINÂMICO (IMPORTANTE)
+  // =========================
+private tema() {
+  const dark = document.body.classList.contains('dark');
+
+  return {
+    text: dark ? '#ffffff' : '#5a5a5a',   // 👈 melhor legibilidade no claro
+    grid: dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
+  };
+}
+
+  // =========================
+  // GRÁFICO DIA
+  // =========================
   buscarGraficoDia() {
 
-    this.http.get<any>(
-      `http://localhost:5000/grafico-dia/${this.cdPaciente}`
-    ).subscribe(res => {
+    this.http.get<any>(`http://localhost:5000/grafico-dia/${this.cdPaciente}`)
+      .subscribe(res => {
 
-      const data = Array.isArray(res) ? res : (res?.data ?? []);
+        const data = Array.isArray(res) ? res : (res?.data ?? []);
 
-      const labels = data.map((x: any) => x.hora + ':00');
-      const medias = data.map((x: any) => x.media);
+        const labels = data.map((x: any) => `${x.hora}h`);
+        const medias = data.map((x: any) => x.media);
 
-      this.criarGraficoDia(labels, medias);
-    });
+        this.criarGraficoDia(labels, medias);
+      });
   }
 
-  // -----------------------------
-  // GRAFICO SEMANA
-  // -----------------------------
-  buscarGraficoSemana() {
-
-    this.http.get<any>(
-      `http://localhost:5000/grafico-semana/${this.cdPaciente}`
-    ).subscribe(res => {
-
-      const data = Array.isArray(res) ? res : (res?.data ?? []);
-
-      const labels = data.map((x: any) => x.dia);
-      const medias = data.map((x: any) => x.media);
-
-      this.criarGraficoSemana(labels, medias);
-    });
-  }
-
-  // -----------------------------
   criarGraficoDia(labels: any[], medias: any[]) {
+
+    const t = this.tema();
 
     this.graficoDia = new Chart('graficoDia', {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: 'Média BPM',
           data: medias,
-          borderWidth: 2,
           borderColor: '#ff4d4d',
           pointBackgroundColor: '#ff4d4d',
-          pointBorderColor: '#ff4d4d'
+          borderWidth: 2,
+          fill: false
         }]
+      },
+     options: {
+  responsive: true,
+  plugins: {
+    legend: { display: false },
+    tooltip: { enabled: true }
+  },
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: 'Hora'
+      },
+      ticks: {
+        color: t.text   // ✔ agora dinâmico
+      },
+      grid: {
+        color: t.grid
       }
+    },
+    y: {
+      title: {
+        display: true,
+        text: 'BPM (Média)'
+      },
+      ticks: {
+        color: t.text   // ✔ agora dinâmico
+      },
+      grid: {
+        color: t.grid
+      }
+    }
+  }
+}
     });
   }
 
+  // =========================
+  // GRÁFICO SEMANA
+  // =========================
+  buscarGraficoSemana() {
+
+    this.http.get<any>(`http://localhost:5000/grafico-semana/${this.cdPaciente}`)
+      .subscribe(res => {
+
+        const data = Array.isArray(res) ? res : (res?.data ?? []);
+
+        const labels = data.map((x: any) => x.dia);
+        const medias = data.map((x: any) => x.media);
+
+        this.criarGraficoSemana(labels, medias);
+      });
+  }
+
   criarGraficoSemana(labels: any[], medias: any[]) {
+
+    const t = this.tema();
 
     this.graficoSemana = new Chart('graficoSemana', {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: 'Média Semanal BPM',
           data: medias,
-          borderWidth: 2,
           borderColor: '#ff4d4d',
           pointBackgroundColor: '#ff4d4d',
-          pointBorderColor: '#ff4d4d'
+          borderWidth: 2,
+          fill: false
         }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Dia'
+            },
+            ticks: {
+              color: t.text
+            },
+            grid: {
+              color: t.grid
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'BPM (Média)'
+            },
+            ticks: {
+              color: t.text
+            },
+            grid: {
+              color: t.grid
+            }
+          }
+        }
       }
     });
   }
 
-  // -----------------------------
-  // PDF
-  // -----------------------------
-baixarPDF() {
+  // =========================
+  // PDF (SEM TEMA DA TELA)
+  // =========================
+  baixarPDF() {
 
-  if (!this.cdPaciente) return;
+    if (!this.cdPaciente) return;
 
-  this.http.get<any>(
-    `http://localhost:5000/resumo-pdf/${this.cdPaciente}`
-  ).subscribe(res => {
+    this.http.get<any>(`http://localhost:5000/resumo-pdf/${this.cdPaciente}`)
+      .subscribe(res => {
 
-    // ✅ GARANTE ARRAY MESMO SE VIER {dados:[]}
-    const dados = Array.isArray(res)
-      ? res
-      : (res?.dados ?? []);
+        const dados = Array.isArray(res) ? res : (res?.dados ?? []);
 
-    const doc = new jsPDF();
+        const doc = new jsPDF();
 
-    doc.setFontSize(16);
-    doc.text('Relatório BPM', 14, 15);
+        doc.setFontSize(16);
+        doc.text('Relatório BPM', 14, 15);
 
-    // -----------------------------
-    // TABELA (AGORA CORRETA)
-    // -----------------------------
-    autoTable(doc, {
-      startY: 25,
-      head: [['Data', 'Média', 'Máx', 'Mín']],
-      body: dados.map((item: any) => [
-        item.data ?? '-',
-        item.media ?? '-',
-        item.maximo ?? '-',
-        item.minimo ?? '-'
-      ])
-    });
+        autoTable(doc, {
+          startY: 25,
+          headStyles: {
+            fillColor: [255, 77, 77],
+            textColor: 255
+          },
+          head: [['Data', 'Média', 'Máx', 'Mín']],
+          body: dados.map((i: any) => [
+            i.data ?? '-',
+            i.media ?? '-',
+            i.maximo ?? '-',
+            i.minimo ?? '-'
+          ])
+        });
 
-    let finalY = (doc as any).lastAutoTable.finalY + 15;
+        let y = (doc as any).lastAutoTable.finalY + 15;
 
-    // -----------------------------
-    // GRÁFICO DIA (COM DELAY)
-    // -----------------------------
-    setTimeout(() => {
+        setTimeout(() => {
 
-      const canvasDia = document.getElementById('graficoDia') as HTMLCanvasElement;
+          const c1 = document.getElementById('graficoDia') as HTMLCanvasElement;
 
-      if (canvasDia) {
-        const imgDia = canvasDia.toDataURL('image/png');
+          if (c1) {
+            doc.text('Gráfico Diário', 14, y);
+            doc.addImage(c1.toDataURL('image/png'), 'PNG', 15, y + 5, 180, 70);
+            y += 90;
+          }
 
-        doc.text('Gráfico Diário', 14, finalY);
-        doc.addImage(imgDia, 'PNG', 15, finalY + 5, 180, 70);
+          const c2 = document.getElementById('graficoSemana') as HTMLCanvasElement;
 
-        finalY += 90;
-      }
+          if (c2) {
+            doc.text('Gráfico Semanal', 14, y);
+            doc.addImage(c2.toDataURL('image/png'), 'PNG', 15, y + 5, 180, 70);
+          }
 
-      // -----------------------------
-      // GRÁFICO SEMANA
-      // -----------------------------
-      const canvasSemana = document.getElementById('graficoSemana') as HTMLCanvasElement;
+          doc.save('relatorio-bpm.pdf');
 
-      if (canvasSemana) {
-        const imgSemana = canvasSemana.toDataURL('image/png');
-
-        doc.text('Gráfico Semanal', 14, finalY);
-        doc.addImage(imgSemana, 'PNG', 15, finalY + 5, 180, 70);
-      }
-
-      doc.save('relatorio.pdf');
-
-    }, 500); // ⬅ importante para o Chart renderizar
-
-  });
-}
+        }, 400);
+      });
+  }
 }
