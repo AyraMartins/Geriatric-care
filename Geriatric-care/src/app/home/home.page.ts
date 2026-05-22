@@ -54,10 +54,16 @@ resumoDiario: any[] = [];
 
     this.cdPaciente = Number(res.cd_paciente);
 
+    console.log('CD PACIENTE FINAL:', this.cdPaciente);
+
     // 🔥 GARANTE CD VÁLIDO ANTES DE USAR
     if (this.cdPaciente) {
-      this.buscarResumoDiario();
-    }
+
+  setTimeout(() => {
+    this.buscarResumoDiario();
+  }, 300);
+
+}
   });
 
   this.subscription.add(
@@ -100,25 +106,70 @@ private aplicarTemaSalvo() {
   }
 }
 
-  buscarResumoDiario() {
+ buscarResumoDiario() {
 
   this.http.get<any>(
-  `http://localhost:5000/resumo-diario/${this.cdPaciente}`
-)
-.subscribe(res => {
+    `http://localhost:5000/resumo-diario/${this.cdPaciente}`
+  )
+  .subscribe(res => {
 
-  console.log('RESUMO:', res);
+    console.log('RESUMO:', res);
 
-  const data = Array.isArray(res) ? res : [res];
+    const resumo = Array.isArray(res) ? res[0] : res;
 
-  this.resumoDiario = data;
+    console.log('OBJETO RESUMO:', resumo);
 
-  this.zone.run(() => {
-    this.resumoDiario = [...this.resumoDiario];
-    this.cdr.detectChanges();
+    if (resumo) {
+
+      this.mediaDiaria = Number(
+        resumo.media ??
+        resumo.media_bpm ??
+        resumo.avg ??
+        0
+      );
+
+      this.maximoHoje = Number(
+        resumo.maximo ??
+        resumo.max_bpm ??
+        resumo.max ??
+        0
+      );
+
+      this.minimoHoje = Number(
+        resumo.minimo ??
+        resumo.min_bpm ??
+        resumo.min ??
+        0
+      );
+
+      setTimeout(() => {
+
+  const media = document.getElementById('media-diaria');
+  const maximo = document.getElementById('maximo-hoje');
+  const minimo = document.getElementById('minimo-hoje');
+
+  if (media) {
+    media.innerText = `${this.mediaDiaria} bpm`;
+  }
+
+  if (maximo) {
+    maximo.innerText = `${this.maximoHoje} bpm`;
+  }
+
+  if (minimo) {
+    minimo.innerText = `${this.minimoHoje} bpm`;
+  }
+
+}, 0);
+
+      this.zone.run(() => {
+        this.cdr.detectChanges();
+      });
+
+    }
+
   });
 
-});
 }
 
   ngOnDestroy() {

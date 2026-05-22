@@ -30,7 +30,7 @@
         <ion-icon name="heart-outline" class="icon"></ion-icon>
         <div class="text">
           <h2>Média diária</h2>
-          <p>{{ mediaDiaria | number:'1.0-0' }} bpm</p>
+          <p id="media-diaria">{{ mediaDiaria ?? '—' }} bpm</p>
         </div>
       </div>
     </ion-card>
@@ -41,7 +41,7 @@
         <ion-icon name="trending-up-outline" class="icon"></ion-icon>
         <div class="text">
           <h2>Máxima de hoje</h2>
-          <p>{{ maximoHoje ?? '—' }} bpm</p>
+          <p id="maximo-hoje">{{ maximoHoje ?? '—' }} bpm</p>
         </div>
       </div>
     </ion-card>
@@ -52,11 +52,10 @@
         <ion-icon name="trending-down-outline" class="icon"></ion-icon>
         <div class="text">
           <h2>Mínima de hoje</h2>
-          <p>{{ minimoHoje ?? '—' }} bpm</p>
+         <p id="minimo-hoje">{{ minimoHoje ?? '—' }} bpm</p>
         </div>
       </div>
     </ion-card>
-
   </div>
   
 
