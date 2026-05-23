@@ -99,48 +99,484 @@
 
   </ion-list>
 
-  <!-- MODAL CONTA -->
+<!-- MODAL CONTA -->
 
-  <ion-modal [isOpen]="modalConta">
+<ion-modal [isOpen]="modalConta">
 
-    <ng-template>
+  <ng-template>
 
-      <ion-header>
+    <ion-header>
 
-        <ion-toolbar>
+      <ion-toolbar>
 
-          <ion-title>
-            Conta
-          </ion-title>
+        <ion-title>
+          Conta
+        </ion-title>
 
-        </ion-toolbar>
+      </ion-toolbar>
 
-      </ion-header>
+    </ion-header>
 
-      <ion-content class="ion-padding">
+    <ion-content class="ion-padding">
 
-        <h2>
-          Gerenciar Conta
-        </h2>
+      <!-- CUIDADOR -->
 
-        <p>
-          Configurações da conta.
-        </p>
+      <ion-card>
 
-        <ion-button
-          expand="block"
-          color="danger"
-          (click)="fecharModais()">
+        <ion-card-header>
 
-          Fechar
+          <ion-card-title>
+            Cuidador
+          </ion-card-title>
 
-        </ion-button>
+          <ion-card-subtitle>
+            Dados da conta do cuidador
+          </ion-card-subtitle>
 
-      </ion-content>
+        </ion-card-header>
 
-    </ng-template>
+        <ion-card-content>
 
-  </ion-modal>
+          <!-- NOME -->
+
+          <div
+            style="
+              margin-bottom:15px;
+            "
+          >
+
+            <strong>
+              Nome
+            </strong>
+
+            <p
+              style="
+                margin-top:5px;
+              "
+            >
+
+              {{ dadosConta.nome_cuidador }}
+
+            </p>
+
+          </div>
+
+          <!-- EMAIL -->
+
+          <div
+            style="
+              margin-bottom:15px;
+            "
+          >
+
+            <strong>
+              Email
+            </strong>
+
+            <p
+              style="
+                margin-top:5px;
+              "
+            >
+
+              {{ dadosConta.email_cuidador }}
+
+            </p>
+
+          </div>
+
+          <!-- TELEFONE -->
+
+          <div
+            style="
+              margin-bottom:15px;
+            "
+          >
+
+            <strong>
+              Telefone
+            </strong>
+
+            <p
+              style="
+                margin-top:5px;
+              "
+            >
+
+              {{ dadosConta.telefone_cuidador }}
+
+            </p>
+
+          </div>
+
+          <!-- ESQUECEU SENHA -->
+
+          <div
+            style="
+              text-align:right;
+              margin-bottom:15px;
+            "
+          >
+
+
+          </div>
+
+          <!-- EDITAR -->
+
+          <div
+            style="
+              display:flex;
+              justify-content:flex-end;
+            "
+          >
+
+            <ion-icon
+              name="create-outline"
+              style="
+                font-size:28px;
+                color:#c62828;
+              "
+              (click)="abrirEditarConta('cuidador')">
+            </ion-icon>
+
+          </div>
+
+        </ion-card-content>
+
+      </ion-card>
+
+      <br>
+
+      <!-- PACIENTE -->
+
+      <ion-card>
+
+        <ion-card-header>
+
+          <ion-card-title>
+            Paciente
+          </ion-card-title>
+
+          <ion-card-subtitle>
+            Dados do paciente
+          </ion-card-subtitle>
+
+        </ion-card-header>
+
+        <ion-card-content>
+
+          <!-- NOME -->
+
+          <div
+            style="
+              margin-bottom:15px;
+            "
+          >
+
+            <strong>
+              Nome
+            </strong>
+
+            <p
+              style="
+                margin-top:5px;
+              "
+            >
+
+              {{ dadosConta.nome_paciente }}
+
+            </p>
+
+          </div>
+
+          <!-- DATA NASCIMENTO -->
+
+          <div
+            style="
+              margin-bottom:15px;
+            "
+          >
+
+            <strong>
+              Data nascimento
+            </strong>
+
+            <p
+              style="
+                margin-top:5px;
+              "
+            >
+
+              {{ dadosConta.data_nascimento }}
+
+            </p>
+
+          </div>
+
+          <!-- EDITAR -->
+
+          <div
+            style="
+              display:flex;
+              justify-content:flex-end;
+            "
+          >
+
+            <ion-icon
+              name="create-outline"
+              style="
+                font-size:28px;
+                color:#c62828;
+              "
+              (click)="abrirEditarConta('paciente')">
+            </ion-icon>
+
+          </div>
+
+        </ion-card-content>
+
+      </ion-card>
+
+      <br>
+
+      <!-- FECHAR -->
+
+      <ion-button
+        expand="block"
+        color="medium"
+        (click)="fecharModais()">
+
+        Fechar
+
+      </ion-button>
+
+    </ion-content>
+
+  </ng-template>
+
+</ion-modal>
+
+<!-- MODAL EDITAR CONTA -->
+
+<ion-modal [isOpen]="modalEditarConta">
+
+  <ng-template>
+
+    <ion-header>
+
+      <ion-toolbar>
+
+        <ion-title>
+          Editar Conta
+        </ion-title>
+
+      </ion-toolbar>
+
+    </ion-header>
+
+    <ion-content class="ion-padding">
+
+      <!-- CUIDADOR -->
+
+      <div *ngIf="tipoEdicao === 'cuidador'">
+
+        <!-- NOME -->
+
+        <ion-input
+          class="input-vermelho"
+          label="Nome"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.nome_cuidador">
+        </ion-input>
+
+        <br>
+
+        <!-- EMAIL -->
+
+        <ion-input
+          class="input-vermelho"
+          type="email"
+          label="Email"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.email_cuidador">
+        </ion-input>
+
+        <br>
+
+        <!-- TELEFONE -->
+
+        <ion-input
+          class="input-vermelho"
+          type="tel"
+          label="Telefone"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.telefone_cuidador">
+        </ion-input>
+
+      </div>
+
+      <!-- PACIENTE -->
+
+      <div *ngIf="tipoEdicao === 'paciente'">
+
+        <!-- NOME -->
+
+        <ion-input
+          class="input-vermelho"
+          label="Nome"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.nome_paciente">
+        </ion-input>
+
+        <br>
+
+        <!-- DATA NASCIMENTO -->
+
+        <ion-input
+          class="input-vermelho"
+          type="date"
+          label="Data nascimento"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.data_nascimento">
+        </ion-input>
+
+      </div>
+
+      <br><br>
+
+      <!-- SALVAR -->
+
+      <ion-button
+        expand="block"
+        color="danger"
+        (click)="editarConta()">
+
+        Salvar
+
+      </ion-button>
+
+      <!-- CANCELAR -->
+
+      <ion-button
+        expand="block"
+        color="medium"
+        (click)="fecharEditarConta()">
+
+        Cancelar
+
+      </ion-button>
+
+    </ion-content>
+
+  </ng-template>
+
+</ion-modal>
+
+<!-- MODAL EDITAR CONTA -->
+
+<ion-modal [isOpen]="modalEditarConta">
+
+  <ng-template>
+
+    <ion-header>
+
+      <ion-toolbar>
+
+        <ion-title>
+          Editar Conta
+        </ion-title>
+
+      </ion-toolbar>
+
+    </ion-header>
+
+    <ion-content class="ion-padding">
+
+      <!-- CUIDADOR -->
+
+      <div *ngIf="tipoEdicao === 'cuidador'">
+
+        <ion-input
+          class="input-vermelho"
+          label="Nome"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.nome_cuidador">
+        </ion-input>
+
+        <br>
+
+        <ion-input
+          class="input-vermelho"
+          type="email"
+          label="Email"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.email_cuidador">
+        </ion-input>
+
+        <br>
+
+        <ion-input
+          class="input-vermelho"
+          type="tel"
+          label="Telefone"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.telefone_cuidador">
+        </ion-input>
+
+      </div>
+
+      <!-- PACIENTE -->
+
+      <div *ngIf="tipoEdicao === 'paciente'">
+
+        <ion-input
+          class="input-vermelho"
+          label="Nome"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.nome_paciente">
+        </ion-input>
+
+        <br>
+
+        <ion-input
+          class="input-vermelho"
+          type="date"
+          label="Data nascimento"
+          labelPlacement="floating"
+          [(ngModel)]="dadosConta.data_nascimento">
+        </ion-input>
+
+      </div>
+
+      <br><br>
+
+      <!-- SALVAR -->
+
+      <ion-button
+        expand="block"
+        color="danger"
+        (click)="editarConta()">
+
+        Salvar
+
+      </ion-button>
+
+      <!-- CANCELAR -->
+
+      <ion-button
+        expand="block"
+        color="medium"
+        (click)="fecharEditarConta()">
+
+        Cancelar
+
+      </ion-button>
+
+    </ion-content>
+
+  </ng-template>
+
+</ion-modal>
 
   <!-- MODAL CUIDADORES -->
 
@@ -325,7 +761,7 @@
         <ion-toolbar>
 
           <ion-title>
-            Novo Cuidador
+            Editar
           </ion-title>
 
         </ion-toolbar>
@@ -425,47 +861,83 @@
 
   </ion-modal>
 
+
   <!-- MODAL AJUDA -->
 
-  <ion-modal [isOpen]="modalAjuda">
+<ion-modal [isOpen]="modalAjuda">
 
-    <ng-template>
+  <ng-template>
 
-      <ion-header>
+    <ion-header>
 
-        <ion-toolbar>
+      <ion-toolbar>
 
-          <ion-title>
-            Ajuda
-          </ion-title>
+        <ion-title>
+          Ajuda
+        </ion-title>
 
-        </ion-toolbar>
+      </ion-toolbar>
 
-      </ion-header>
+    </ion-header>
 
-      <ion-content class="ion-padding">
+    <ion-content class="ion-padding">
 
-        <h2>
-          Central de Ajuda
-        </h2>
+      <h2>
+        Suporte
+      </h2>
 
-        <p>
-          Aqui ficará o suporte.
-        </p>
+      <p>
+        Envie sua dúvida ou problema
+      </p>
 
-        <ion-button
-          expand="block"
-          color="danger"
-          (click)="fecharModais()">
+      <!-- ASSUNTO -->
 
-          Fechar
+      <ion-input
+        class="input-vermelho"
+        label="Assunto"
+        labelPlacement="floating"
+        [(ngModel)]="ajuda.assunto">
+      </ion-input>
 
-        </ion-button>
+      <br>
 
-      </ion-content>
+      <!-- DESCRIÇÃO -->
 
-    </ng-template>
+      <ion-input
+        class="input-vermelho"
+        label="Descrição"
+        labelPlacement="floating"
+        [(ngModel)]="ajuda.descricao">
+      </ion-input>
 
-  </ion-modal>
+      <br><br>
+
+      <!-- ENVIAR -->
+
+      <ion-button
+        expand="block"
+        color="danger"
+        (click)="enviarAjuda()">
+
+        Enviar
+
+      </ion-button>
+
+      <!-- FECHAR -->
+
+      <ion-button
+        expand="block"
+        color="medium"
+        (click)="fecharModais()">
+
+        Fechar
+
+      </ion-button>
+
+    </ion-content>
+
+  </ng-template>
+
+</ion-modal>
 
 </ion-content>

@@ -26,6 +26,8 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
+  AlertController
+
 } from '@ionic/angular/standalone';
 
 @Component({
@@ -69,6 +71,28 @@ export class ConfiguracoesPage implements OnInit {
   modalAjuda = false;
   modalNovoCuidador = false;
 
+  modalEditarConta = false;
+
+  tipoEdicao = '';
+
+  ajuda = {
+
+    assunto: '',
+    descricao: ''
+
+  };
+
+  dadosConta = {
+
+    nome_cuidador: '',
+    email_cuidador: '',
+    telefone_cuidador: '',
+
+    nome_paciente: '',
+    data_nascimento: ''
+
+  };
+
   cuidadoresExtras: any[] = [];
 
   editarId: number | null = null;
@@ -105,8 +129,9 @@ export class ConfiguracoesPage implements OnInit {
   ];
 
   constructor(
-    private http: HttpClient
-  ) { }
+  private http: HttpClient,
+  private alertController: AlertController
+) { }
 
   ngOnInit() {
 
@@ -158,6 +183,8 @@ export class ConfiguracoesPage implements OnInit {
     if (item.nome === 'Conta') {
 
       this.modalConta = true;
+
+      this.carregarConta();
 
     }
 
@@ -221,7 +248,7 @@ export class ConfiguracoesPage implements OnInit {
 
     this.http.get<any[]>(
 
-      `http://192.168.0.132:5000/cuidadores-extra/${cd_paciente}`
+      `http://localhost:5000/cuidadores-extra/${cd_paciente}`
 
     ).subscribe({
 
@@ -268,33 +295,61 @@ export class ConfiguracoesPage implements OnInit {
     this.modalNovoCuidador = true;
 
   }
+async excluirCuidador(id: number) {
 
-  excluirCuidador(id: number) {
+  const alert = await this.alertController.create({
 
-    this.http.delete(
+    header: 'Excluir cuidador',
 
-      `http://192.168.0.132:5000/cuidadores-extra/${id}`
+    message: 'Tem certeza que deseja excluir este cuidador?',
 
-    ).subscribe({
+    buttons: [
 
-      next: () => {
-
-        this.carregarCuidadores();
-
+      {
+        text: 'Cancelar',
+        role: 'cancel'
       },
 
-      error: (erro) => {
+      {
+        text: 'Sim',
+        role: 'destructive',
 
-        console.log(
-          'ERRO EXCLUIR:',
-          erro
-        );
+        handler: () => {
+
+          this.http.delete(
+
+            `http://localhost:5000/cuidadores-extra/${id}`
+
+          ).subscribe({
+
+            next: () => {
+
+              this.carregarCuidadores();
+
+            },
+
+            error: (erro) => {
+
+              console.log(
+                'ERRO EXCLUIR:',
+                erro
+              );
+
+            }
+
+          });
+
+        }
 
       }
 
-    });
+    ]
 
-  }
+  });
+
+  await alert.present();
+
+}
 
   salvarNovoCuidador() {
 
@@ -320,13 +375,11 @@ export class ConfiguracoesPage implements OnInit {
 
     };
 
-    // EDITAR
-
     if (this.editarId) {
 
       this.http.put(
 
-        `http://192.168.0.132:5000/cuidadores-extra/${this.editarId}`,
+        `http://localhost:5000/cuidadores-extra/${this.editarId}`,
 
         body
 
@@ -364,13 +417,11 @@ export class ConfiguracoesPage implements OnInit {
 
     }
 
-    // NOVO
-
     else {
 
       this.http.post(
 
-        'http://192.168.0.132:5000/cuidadores-extra',
+        'http://localhost:5000/cuidadores-extra',
 
         body
 
@@ -405,6 +456,173 @@ export class ConfiguracoesPage implements OnInit {
       });
 
     }
+
+  }
+
+  enviarAjuda() {
+
+    const body = {
+
+      assunto: this.ajuda.assunto,
+      descricao: this.ajuda.descricao,
+
+      email:
+        localStorage.getItem('email')
+
+    };
+
+    this.http.post(
+
+      'http://localhost:5000/enviar-ajuda',
+
+      body
+
+    ).subscribe({
+
+      next: () => {
+
+        alert('Ajuda enviada com sucesso');
+
+        this.ajuda = {
+
+          assunto: '',
+          descricao: ''
+
+        };
+
+        this.modalAjuda = false;
+
+      },
+
+      error: (erro) => {
+
+        console.log(
+          'ERRO AJUDA:',
+          erro
+        );
+
+        alert('Erro ao enviar ajuda');
+
+      }
+
+    });
+
+  }
+
+  carregarConta() {
+
+    const cd_cuidador =
+      localStorage.getItem('cd_cuidador');
+
+    if (!cd_cuidador) {
+
+      return;
+
+    }
+
+    this.http.get<any>(
+
+      `http://localhost:5000/conta/${cd_cuidador}`
+
+    ).subscribe({
+
+      next: (res) => {
+
+        this.dadosConta = {
+
+          nome_cuidador:
+            res.nome_cuidador,
+
+          email_cuidador:
+            res.email_cuidador,
+
+          telefone_cuidador:
+            res.telefone_cuidador,
+
+          nome_paciente:
+            res.nome_paciente,
+
+          data_nascimento:
+            res.data_nascimento
+
+        };
+
+      },
+
+      error: (erro) => {
+
+        console.log(
+          'ERRO CONTA:',
+          erro
+        );
+
+      }
+
+    });
+
+  }
+
+  abrirEditarConta(tipo: string) {
+
+    this.tipoEdicao = tipo;
+
+    this.modalEditarConta = true;
+
+  }
+
+  fecharEditarConta() {
+
+    this.modalEditarConta = false;
+
+    this.tipoEdicao = '';
+
+  }
+
+  editarConta() {
+
+    const cd_cuidador =
+      localStorage.getItem('cd_cuidador');
+
+    if (!cd_cuidador) {
+
+      return;
+
+    }
+
+    this.http.put(
+
+      `http://localhost:5000/conta/${cd_cuidador}`,
+
+      this.dadosConta
+
+    ).subscribe({
+
+      next: () => {
+
+        alert(
+          'Conta atualizada'
+        );
+
+        this.modalEditarConta = false;
+
+        this.carregarConta();
+
+      },
+
+      error: (erro) => {
+
+        console.log(
+          'ERRO EDITAR CONTA:',
+          erro
+        );
+
+        alert(
+          'Erro ao atualizar'
+        );
+
+      }
+
+    });
 
   }
 

@@ -1249,6 +1249,222 @@ def enviar_medicos(cd_paciente):
             "erro": str(e)
         }), 500
 
+
+# ---------------------------------------------------
+# ENVIAR AJUDA
+# ---------------------------------------------------
+@app.route('/enviar-ajuda', methods=['POST'])
+def enviar_ajuda():
+
+    try:
+
+        data = request.json
+
+        assunto = data.get('assunto')
+        descricao = data.get('descricao')
+        email_usuario = data.get('email')
+
+        resend.Emails.send({
+
+            "from": "onboarding@resend.dev",
+
+            "to": "ayramartins0@gmail.com",
+
+            "subject": f"SUPORTE - {assunto}",
+
+            "html": f"""
+            <h2>Novo chamado de ajuda</h2>
+
+            <p>
+                <b>Email do usuário:</b>
+                {email_usuario}
+            </p>
+
+            <p>
+                <b>Assunto:</b>
+                {assunto}
+            </p>
+
+            <p>
+                <b>Descrição:</b>
+                {descricao}
+            </p>
+            """
+        })
+
+        return jsonify({
+            "ok": True
+        })
+
+    except Exception as e:
+
+        print("ERRO AJUDA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# BUSCAR DADOS DA CONTA
+# ---------------------------------------------------
+@app.route('/conta/<int:cd_cuidador>')
+def buscar_conta(cd_cuidador):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        sql = """
+        SELECT
+
+            c.nm_cuidador,
+            c.email_cuidador,
+            c.tel_cuidador,
+
+            p.nm_paciente,
+            p.dt_nasc
+
+        FROM cuidador c
+
+        LEFT JOIN paciente p
+        ON p.cd_cuidador = c.cd_cuidador
+
+        WHERE c.cd_cuidador = %s
+
+        LIMIT 1
+        """
+
+        cursor.execute(sql, (cd_cuidador,))
+
+        dados = cursor.fetchone()
+
+        cursor.close()
+        db.close()
+
+        if not dados:
+
+            return jsonify({
+                "erro": "Conta não encontrada"
+            }), 404
+
+        data_formatada = ''
+
+        if dados['dt_nasc']:
+
+            data_formatada = dados['dt_nasc'].strftime('%Y-%m-%d')
+
+        return jsonify({
+
+            "nome_cuidador":
+                dados['nm_cuidador'],
+
+            "email_cuidador":
+                dados['email_cuidador'],
+
+            "telefone_cuidador":
+                dados['tel_cuidador'],
+
+            "nome_paciente":
+                dados['nm_paciente'],
+
+            "data_nascimento":
+                data_formatada
+
+        })
+
+    except Exception as e:
+
+        print("ERRO CONTA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# EDITAR CONTA
+# ---------------------------------------------------
+@app.route('/conta/<int:cd_cuidador>', methods=['PUT'])
+def editar_conta(cd_cuidador):
+
+    try:
+
+        data = request.json
+
+        db = conectar()
+
+        cursor = db.cursor()
+
+        # -----------------------------------------
+        # EDITAR CUIDADOR
+        # -----------------------------------------
+        sql_cuidador = """
+        UPDATE cuidador
+        SET
+            nm_cuidador = %s,
+            email_cuidador = %s,
+            tel_cuidador = %s
+        WHERE cd_cuidador = %s
+        """
+
+        valores_cuidador = (
+
+            data['nome_cuidador'],
+            data['email_cuidador'],
+            data['telefone_cuidador'],
+            cd_cuidador
+
+        )
+
+        cursor.execute(
+            sql_cuidador,
+            valores_cuidador
+        )
+
+        # -----------------------------------------
+        # EDITAR PACIENTE
+        # -----------------------------------------
+        sql_paciente = """
+        UPDATE paciente
+        SET
+            nm_paciente = %s,
+            dt_nasc = %s
+        WHERE cd_cuidador = %s
+        """
+
+        valores_paciente = (
+
+            data['nome_paciente'],
+            data['data_nascimento'],
+            cd_cuidador
+
+        )
+
+        cursor.execute(
+            sql_paciente,
+            valores_paciente
+        )
+
+        db.commit()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True
+        })
+
+    except Exception as e:
+
+        print("ERRO EDITAR CONTA:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
 # ---------------------------------------------------
 # START SERVER
 # ---------------------------------------------------
