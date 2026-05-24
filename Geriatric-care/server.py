@@ -1,8 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
 import mysql.connector
 import resend
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import letter
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.widgets.markers import makeMarker
+from decimal import Decimal
+import base64
+import os
+
 
 resend.api_key = "re_fwMTFvpM_7FKiehH7fDukDnm7Z3yEkVc5";
 
@@ -1081,14 +1091,23 @@ def excluir_cuidador_extra(id):
             "erro": str(e)
         }), 500
 
-
 # ---------------------------------------------------
-# ENVIAR EMAIL PARA MÉDICOS
+# ENVIAR PDF PARA MÉDICOS
 # ---------------------------------------------------
 @app.route('/enviar-medicos/<int:cd_paciente>', methods=['POST'])
 def enviar_medicos(cd_paciente):
 
     try:
+
+        data = request.json
+
+        pdf_base64 = data.get('pdf_base64')
+
+        if not pdf_base64:
+
+            return jsonify({
+                "erro": "PDF não enviado"
+            }), 400
 
         db = conectar()
 
@@ -1124,101 +1143,29 @@ def enviar_medicos(cd_paciente):
         # -----------------------------------------
         sql_paciente = """
         SELECT
-            p.nm_paciente,
-            c.nm_cuidador
+            p.nm_paciente
         FROM paciente p
-
-        INNER JOIN cuidador c
-        ON c.cd_cuidador = p.cd_cuidador
-
         WHERE p.cd_paciente = %s
         """
 
         cursor.execute(sql_paciente, (cd_paciente,))
 
-        pessoa = cursor.fetchone()
-
-        nm_paciente = pessoa['nm_paciente']
-        nm_cuidador = pessoa['nm_cuidador']
-
-        # -----------------------------------------
-        # BUSCAR RESUMO
-        # -----------------------------------------
-        sql = """
-        SELECT
-
-            DATE_FORMAT(
-                DATE(dt_hr_batimentos),
-                '%d/%m/%Y'
-            ) AS data,
-
-            ROUND(
-                AVG(btm_batimentos),
-                0
-            ) AS media,
-
-            MAX(btm_batimentos) AS maximo,
-
-            MIN(btm_batimentos) AS minimo
-
-        FROM batimentos
-
-        WHERE cd_paciente = %s
-
-        GROUP BY DATE(dt_hr_batimentos)
-
-        ORDER BY DATE(dt_hr_batimentos) DESC
-        """
-
-        cursor.execute(sql, (cd_paciente,))
-
-        resumo = cursor.fetchall()
+        paciente = cursor.fetchone()
 
         cursor.close()
         db.close()
 
-        # -----------------------------------------
-        # HTML EMAIL
-        # -----------------------------------------
-        html = f"""
-        <h2>Relatório BPM</h2>
+        nm_paciente = (
+            paciente['nm_paciente']
+            if paciente else
+            'Paciente'
+        )
 
-        <p>
-            <b>Paciente:</b> {nm_paciente}
-        </p>
-
-        <p>
-            <b>Cuidador:</b> {nm_cuidador}
-        </p>
-
-        <table border="1" cellpadding="8">
-
-            <tr>
-                <th>Data</th>
-                <th>Média</th>
-                <th>Máximo</th>
-                <th>Mínimo</th>
-            </tr>
-        """
-
-        for item in resumo:
-
-            html += f"""
-            <tr>
-                <td>{item['data']}</td>
-                <td>{item['media']}</td>
-                <td>{item['maximo']}</td>
-                <td>{item['minimo']}</td>
-            </tr>
-            """
-
-        html += "</table>"
+        enviados = []
 
         # -----------------------------------------
         # ENVIAR EMAILS
         # -----------------------------------------
-        enviados = []
-
         for medico in medicos:
 
             resend.Emails.send({
@@ -1229,7 +1176,20 @@ def enviar_medicos(cd_paciente):
 
                 "subject": f"Relatório BPM - {nm_paciente}",
 
-                "html": html
+                "html": f"""
+                <h2>Relatório BPM</h2>
+
+                <p>
+                    O relatório em PDF segue em anexo.
+                </p>
+                """,
+
+                "attachments": [
+                    {
+                        "filename": "relatorio-bpm.pdf",
+                        "content": pdf_base64
+                    }
+                ]
             })
 
             enviados.append(
@@ -1248,8 +1208,6 @@ def enviar_medicos(cd_paciente):
         return jsonify({
             "erro": str(e)
         }), 500
-
-
 # ---------------------------------------------------
 # ENVIAR AJUDA
 # ---------------------------------------------------

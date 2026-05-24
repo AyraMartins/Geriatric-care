@@ -241,97 +241,462 @@ private tema() {
     });
   }
 
-  // =========================
-  // PDF (SEM TEMA DA TELA)
-  // =========================
-  baixarPDF() {
+// =========================
+// PDF
+// =========================
+baixarPDF() {
 
-    if (!this.cdPaciente) return;
+  if (!this.cdPaciente) return;
 
-    this.http.get<any>(`http://localhost:5000/resumo-pdf/${this.cdPaciente}`)
-      .subscribe(res => {
+  this.http.get<any>(
+    `http://localhost:5000/resumo-pdf/${this.cdPaciente}`
+  ).subscribe(res => {
 
-        const dados = Array.isArray(res) ? res : (res?.dados ?? []);
+    console.log(res);
 
-        const doc = new jsPDF();
+    // -------------------------
+    // DADOS
+    // -------------------------
+    const dados = res?.dados ?? [];
 
-        doc.setFontSize(16);
-        doc.text('Relatório BPM', 14, 15);
+    const paciente =
+      res?.paciente ?? '-';
 
-        autoTable(doc, {
-          startY: 25,
-          headStyles: {
-            fillColor: [255, 77, 77],
-            textColor: 255
-          },
-          head: [['Data', 'Média', 'Máx', 'Mín']],
-          body: dados.map((i: any) => [
-            i.data ?? '-',
-            i.media ?? '-',
-            i.maximo ?? '-',
-            i.minimo ?? '-'
-          ])
-        });
+    const cuidador =
+      res?.cuidador ?? '-';
 
-        let y = (doc as any).lastAutoTable.finalY + 15;
+    // -------------------------
+    // PDF
+    // -------------------------
+    const doc = new jsPDF();
 
-        setTimeout(() => {
+    doc.setFontSize(20);
 
-          const c1 = document.getElementById('graficoDia') as HTMLCanvasElement;
+    doc.text(
+      'Relatório BPM',
+      14,
+      20
+    );
 
-          if (c1) {
-            doc.text('Gráfico Diário', 14, y);
-            doc.addImage(c1.toDataURL('image/png'), 'PNG', 15, y + 5, 180, 70);
-            y += 90;
-          }
+    doc.setFontSize(12);
 
-          const c2 = document.getElementById('graficoSemana') as HTMLCanvasElement;
+    doc.text(
+      `Paciente: ${paciente}`,
+      14,
+      35
+    );
 
-          if (c2) {
-            doc.text('Gráfico Semanal', 14, y);
-            doc.addImage(c2.toDataURL('image/png'), 'PNG', 15, y + 5, 180, 70);
-          }
+    doc.text(
+      `Cuidador: ${cuidador}`,
+      14,
+      45
+    );
 
-          doc.save('relatorio-bpm.pdf');
+    // -------------------------
+    // TABELA
+    // -------------------------
+    autoTable(doc, {
 
-        }, 400);
-      });
-  }
+      startY: 55,
+
+      styles: {
+        fontSize: 11,
+        cellPadding: 4
+      },
+
+      headStyles: {
+        fillColor: [255, 77, 77],
+        textColor: 255,
+        fontSize: 12
+      },
+
+      head: [[
+        'Data',
+        'Média',
+        'Máximo',
+        'Mínimo'
+      ]],
+
+      body: dados.map((i: any) => [
+
+        i.data ?? '-',
+
+        i.media ?? '-',
+
+        i.maximo ?? '-',
+
+        i.minimo ?? '-'
+
+      ])
+    });
+
+    // -------------------------
+    // POSIÇÃO Y
+    // -------------------------
+    let y =
+      (doc as any)
+      .lastAutoTable
+      .finalY + 20;
+
+
+// ==========================
+// FORÇAR CORES PDF
+// ==========================
+    this.graficoDia.options.scales.x.ticks.color = '#000';
+    this.graficoDia.options.scales.y.ticks.color = '#000';
+
+    this.graficoSemana.options.scales.x.ticks.color = '#000';
+    this.graficoSemana.options.scales.y.ticks.color = '#000';
+
+    this.graficoDia.options.scales.x.title.color = '#000';
+    this.graficoDia.options.scales.y.title.color = '#000';
+
+    this.graficoSemana.options.scales.x.title.color = '#000';
+    this.graficoSemana.options.scales.y.title.color = '#000';
+
+    this.graficoDia.update();
+    this.graficoSemana.update();
+    // -------------------------
+    // AGUARDAR GRÁFICOS
+    // -------------------------
+    setTimeout(() => {
+
+      // -------------------------
+      // GRÁFICO DIA
+      // -------------------------
+      const c1 =
+        document.getElementById(
+          'graficoDia'
+        ) as HTMLCanvasElement;
+
+      if (c1) {
+
+        doc.setFontSize(14);
+
+        doc.text(
+          'Gráfico Diário',
+          14,
+          y
+        );
+
+        doc.addImage(
+          c1.toDataURL('image/png'),
+          'PNG',
+          15,
+          y + 5,
+          180,
+          80
+        );
+
+        y += 100;
+      }
+
+      // -------------------------
+      // NOVA PÁGINA
+      // -------------------------
+      if (y > 220) {
+
+        doc.addPage();
+
+        y = 20;
+      }
+
+      // -------------------------
+      // GRÁFICO SEMANA
+      // -------------------------
+      const c2 =
+        document.getElementById(
+          'graficoSemana'
+        ) as HTMLCanvasElement;
+
+      if (c2) {
+
+        doc.setFontSize(14);
+
+        doc.text(
+          'Gráfico Semanal',
+          14,
+          y
+        );
+
+        doc.addImage(
+          c2.toDataURL('image/png'),
+          'PNG',
+          15,
+          y + 5,
+          180,
+          80
+        );
+      }
+
+      // -------------------------
+      // SALVAR
+      // -------------------------
+      doc.save(
+        'relatorio-bpm.pdf'
+      );
+
+// ==========================
+// RESTAURAR TEMA
+// ==========================
+const t = this.tema();
+
+this.graficoDia.options.scales.x.ticks.color = t.text;
+this.graficoDia.options.scales.y.ticks.color = t.text;
+
+this.graficoSemana.options.scales.x.ticks.color = t.text;
+this.graficoSemana.options.scales.y.ticks.color = t.text;
+
+this.graficoDia.options.scales.x.title.color = t.text;
+this.graficoDia.options.scales.y.title.color = t.text;
+
+this.graficoSemana.options.scales.x.title.color = t.text;
+this.graficoSemana.options.scales.y.title.color = t.text;
+
+this.graficoDia.update();
+this.graficoSemana.update();
+
+    }, 500);
+  });
+}
 
 // =========================
 // ENVIAR EMAIL MÉDICOS
 // =========================
 enviarMedicos() {
 
-  const cd_paciente =
-    localStorage.getItem('cd_paciente');
+  if (!this.cdPaciente) return;
 
-  this.http.post(
+  this.http.get<any>(
+    `http://localhost:5000/resumo-pdf/${this.cdPaciente}`
+  ).subscribe(res => {
 
-    `http://localhost:5000/enviar-medicos/${cd_paciente}`,
+    const dados = res?.dados ?? [];
 
-    {}
+    const paciente =
+      res?.paciente ?? '-';
 
-  ).subscribe({
+    const cuidador =
+      res?.cuidador ?? '-';
 
-    next: (res: any) => {
+    // -------------------------
+    // PDF
+    // -------------------------
+    const doc = new jsPDF();
 
-      console.log(res);
+    doc.setFontSize(20);
 
-      alert(
-        'Resumo enviado para os médicos'
-      );
-    },
+    doc.text(
+      'Relatório BPM',
+      14,
+      20
+    );
 
-    error: (err) => {
+    doc.setFontSize(12);
 
-      console.log(err);
+    doc.text(
+      `Paciente: ${paciente}`,
+      14,
+      35
+    );
 
-      alert(
-        'Erro ao enviar email'
-      );
-    }
+    doc.text(
+      `Cuidador: ${cuidador}`,
+      14,
+      45
+    );
+
+    // -------------------------
+    // TABELA
+    // -------------------------
+    autoTable(doc, {
+
+      startY: 55,
+
+      styles: {
+        fontSize: 11,
+        cellPadding: 4
+      },
+
+      headStyles: {
+        fillColor: [255, 77, 77],
+        textColor: 255,
+        fontSize: 12
+      },
+
+      head: [[
+        'Data',
+        'Média',
+        'Máximo',
+        'Mínimo'
+      ]],
+
+      body: dados.map((i: any) => [
+
+        i.data ?? '-',
+
+        i.media ?? '-',
+
+        i.maximo ?? '-',
+
+        i.minimo ?? '-'
+
+      ])
+    });
+
+    let y =
+      (doc as any)
+      .lastAutoTable
+      .finalY + 20;
+
+      // ==========================
+// FORÇAR CORES PDF
+// ==========================
+this.graficoDia.options.scales.x.ticks.color = '#000';
+this.graficoDia.options.scales.y.ticks.color = '#000';
+
+this.graficoSemana.options.scales.x.ticks.color = '#000';
+this.graficoSemana.options.scales.y.ticks.color = '#000';
+
+this.graficoDia.options.scales.x.title.color = '#000';
+this.graficoDia.options.scales.y.title.color = '#000';
+
+this.graficoSemana.options.scales.x.title.color = '#000';
+this.graficoSemana.options.scales.y.title.color = '#000';
+
+this.graficoDia.update();
+this.graficoSemana.update();
+
+    setTimeout(() => {
+
+      // -------------------------
+      // GRÁFICO DIA
+      // -------------------------
+      const c1 =
+        document.getElementById(
+          'graficoDia'
+        ) as HTMLCanvasElement;
+
+      if (c1) {
+
+        doc.setFontSize(14);
+
+        doc.text(
+          'Gráfico Diário',
+          14,
+          y
+        );
+
+        doc.addImage(
+          c1.toDataURL('image/png'),
+          'PNG',
+          15,
+          y + 5,
+          180,
+          80
+        );
+
+        y += 100;
+      }
+
+      // -------------------------
+      // NOVA PÁGINA
+      // -------------------------
+      if (y > 220) {
+
+        doc.addPage();
+
+        y = 20;
+      }
+
+      // -------------------------
+      // GRÁFICO SEMANAL
+      // -------------------------
+      const c2 =
+        document.getElementById(
+          'graficoSemana'
+        ) as HTMLCanvasElement;
+
+      if (c2) {
+
+        doc.setFontSize(14);
+
+        doc.text(
+          'Gráfico Semanal',
+          14,
+          y
+        );
+
+        doc.addImage(
+          c2.toDataURL('image/png'),
+          'PNG',
+          15,
+          y + 5,
+          180,
+          80
+        );
+      }
+
+      // -------------------------
+      // BASE64 PDF
+      // -------------------------
+      const pdfBase64 =
+        doc.output('datauristring')
+        .split(',')[1];
+
+      // -------------------------
+      // ENVIAR BACKEND
+      // -------------------------
+      this.http.post(
+
+        `http://localhost:5000/enviar-medicos/${this.cdPaciente}`,
+
+        {
+          pdf_base64: pdfBase64
+        }
+
+      ).subscribe({
+
+        next: (res: any) => {
+
+          console.log(res);
+
+          alert(
+            'Resumo enviado para os médicos'
+          );
+// ==========================
+// RESTAURAR TEMA
+// ==========================
+const t = this.tema();
+
+this.graficoDia.options.scales.x.ticks.color = t.text;
+this.graficoDia.options.scales.y.ticks.color = t.text;
+
+this.graficoSemana.options.scales.x.ticks.color = t.text;
+this.graficoSemana.options.scales.y.ticks.color = t.text;
+
+this.graficoDia.options.scales.x.title.color = t.text;
+this.graficoDia.options.scales.y.title.color = t.text;
+
+this.graficoSemana.options.scales.x.title.color = t.text;
+this.graficoSemana.options.scales.y.title.color = t.text;
+
+this.graficoDia.update();
+this.graficoSemana.update();
+
+        },
+
+        error: (err) => {
+
+          console.log(err);
+
+          alert(
+            'Erro ao enviar email'
+          );
+        }
+      });
+
+    }, 500);
   });
 }
-
 }
