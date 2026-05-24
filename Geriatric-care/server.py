@@ -371,6 +371,8 @@ def criar_cuidador():
 
     try:
 
+        global cuidador_atual
+
         data = request.json
 
         db = conectar()
@@ -410,12 +412,20 @@ def criar_cuidador():
 
         cd_cuidador = cursor.lastrowid
 
+        # -----------------------------------------
+        # LOGIN AUTOMÁTICO
+        # -----------------------------------------
+        cuidador_atual = cd_cuidador
+
+        print("CUIDADOR LOGADO AUTOMATICAMENTE:", cuidador_atual)
+
         cursor.close()
         db.close()
 
         return jsonify({
             "msg": "Cuidador criado com sucesso",
-            "cd_cuidador": cd_cuidador
+            "cd_cuidador": cd_cuidador,
+            "logado": True
         })
 
     except Exception as e:
