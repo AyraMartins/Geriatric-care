@@ -69,3 +69,22 @@ ion-item.input-error ion-input {
   margin-top: 15px;
   font-weight: bold;
 }
+
+
+.sheet-content {
+  --background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+.sheet-title {
+  color: var(--ion-text-color);
+}
+
+.sheet-content ion-item {
+  --background: var(--ion-item-background);
+  --color: var(--ion-text-color);
+}
+
+.sheet-content ion-input {
+  --color: var(--ion-text-color);
+}

@@ -13,8 +13,7 @@ from decimal import Decimal
 import base64
 import os
 
-
-resend.api_key = "re_fwMTFvpM_7FKiehH7fDukDnm7Z3yEkVc5";
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 # ---------------------------------------------------
 # APP
@@ -25,13 +24,17 @@ CORS(app)
 # ---------------------------------------------------
 # CONEXÃO MYSQL
 # ---------------------------------------------------
-def conectar():
 
+
+
+
+def conectar():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="banco_geriatric_care"
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        port=3306
     )
 # ---------------------------------------------------
 # GERAR RESUMO DIÁRIO
