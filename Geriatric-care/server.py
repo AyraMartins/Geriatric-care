@@ -13,7 +13,7 @@ from decimal import Decimal
 import base64
 import os
 
-resend.api_key = os.getenv("RESEND_API_KEY")
+resend.api_key = os.getenv("RESEND_API_KEY");
 
 # ---------------------------------------------------
 # APP
