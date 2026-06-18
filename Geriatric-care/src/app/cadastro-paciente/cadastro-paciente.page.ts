@@ -120,7 +120,7 @@ export class CadastroPacientePage implements OnInit {
     console.log(dados);
 
     this.http.post(
-      'http://localhost:5000/paciente',
+      'https://geriatric-care.onrender.com/paciente',
       dados
     ).subscribe({
 

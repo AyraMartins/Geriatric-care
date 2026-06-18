@@ -46,7 +46,7 @@ resumoDiario: any[] = [];
   }
 
   this.http.get<any>(
-    `http://localhost:5000/paciente-cuidador/${cdCuidador}`
+    `https://geriatric-care.onrender.com/paciente-cuidador/${cdCuidador}`
   )
   .subscribe(res => {
 
@@ -109,7 +109,7 @@ private aplicarTemaSalvo() {
  buscarResumoDiario() {
 
   this.http.get<any>(
-    `http://localhost:5000/resumo-diario/${this.cdPaciente}`
+    `https://geriatric-care.onrender.com/resumo-diario/${this.cdPaciente}`
   )
   .subscribe(res => {
 

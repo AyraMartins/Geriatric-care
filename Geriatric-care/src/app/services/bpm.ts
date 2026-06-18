@@ -16,7 +16,7 @@ export class BpmService {
     timer(0, 3000)
       .pipe(
         switchMap(() =>
-          this.http.get<any>('http://192.168.0.132:5000/').pipe(
+          this.http.get<any>('https://geriatric-care.onrender.com').pipe(
             tap(data => console.log('SERVICE BPM RESPONSE:', data)),
             catchError(error => {
               console.error('SERVICE BPM ERROR:', error);

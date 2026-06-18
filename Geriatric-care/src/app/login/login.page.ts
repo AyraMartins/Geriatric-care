@@ -96,7 +96,7 @@ export class LoginPage {
       cd_senha: this.senha
     };
 
-    this.http.post<any>('http://localhost:5000/cuidador', dados)
+    this.http.post<any>('https://geriatric-care.onrender.com/cuidador', dados)
       .subscribe(res => {
 
         localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
@@ -124,7 +124,7 @@ export class LoginPage {
       senha: this.senhaLogin
     };
 
-    this.http.post<any>('http://localhost:5000/validar-login', data)
+    this.http.post<any>('https://geriatric-care.onrender.com/validar-login', data)
       .subscribe({
 
         next: (res) => {
@@ -139,7 +139,7 @@ export class LoginPage {
           localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
 
           this.http.get<any>(
-            `http://localhost:5000/paciente-cuidador/${res.cd_cuidador}`
+            `https://geriatric-care.onrender.com/paciente-cuidador/${res.cd_cuidador}`
           ).subscribe({
 
             next: (paciente) => {

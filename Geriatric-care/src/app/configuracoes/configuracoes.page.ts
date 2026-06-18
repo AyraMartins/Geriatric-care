@@ -248,7 +248,7 @@ export class ConfiguracoesPage implements OnInit {
 
     this.http.get<any[]>(
 
-      `http://localhost:5000/cuidadores-extra/${cd_paciente}`
+      `https://geriatric-care.onrender.com/cuidadores-extra/${cd_paciente}`
 
     ).subscribe({
 
@@ -318,7 +318,7 @@ async excluirCuidador(id: number) {
 
           this.http.delete(
 
-            `http://localhost:5000/cuidadores-extra/${id}`
+            `https://geriatric-care.onrender.com/cuidadores-extra/${id}`
 
           ).subscribe({
 
@@ -379,7 +379,7 @@ async excluirCuidador(id: number) {
 
       this.http.put(
 
-        `http://localhost:5000/cuidadores-extra/${this.editarId}`,
+        `https://geriatric-care.onrender.com/cuidadores-extra/${this.editarId}`,
 
         body
 
@@ -421,7 +421,7 @@ async excluirCuidador(id: number) {
 
       this.http.post(
 
-        'http://localhost:5000/cuidadores-extra',
+        'https://geriatric-care.onrender.com/cuidadores-extra',
 
         body
 
@@ -473,7 +473,7 @@ async excluirCuidador(id: number) {
 
     this.http.post(
 
-      'http://localhost:5000/enviar-ajuda',
+      'https://geriatric-care.onrender.com/enviar-ajuda',
 
       body
 
@@ -522,7 +522,7 @@ async excluirCuidador(id: number) {
 
     this.http.get<any>(
 
-      `http://localhost:5000/conta/${cd_cuidador}`
+      `https://geriatric-care.onrender.com/conta/${cd_cuidador}`
 
     ).subscribe({
 
@@ -591,7 +591,7 @@ async excluirCuidador(id: number) {
 
     this.http.put(
 
-      `http://localhost:5000/conta/${cd_cuidador}`,
+      `https://geriatric-care.onrender.com/conta/${cd_cuidador}`,
 
       this.dadosConta
 

@@ -77,7 +77,7 @@ export class RelatorioPage implements OnInit {
   // PACIENTE
   // =========================
   buscarDadosPessoa() {
-    this.http.get<any>(`http://localhost:5000/paciente-info/${this.cdPaciente}`)
+    this.http.get<any>(`https://geriatric-care.onrender.com/paciente-info/${this.cdPaciente}`)
       .subscribe(res => {
         const data = Array.isArray(res) ? res[0] : res;
         this.nomePaciente = data?.nm_paciente ?? '-';
@@ -86,7 +86,7 @@ export class RelatorioPage implements OnInit {
   }
 
   buscarResumoDiario() {
-    this.http.get<any>(`http://localhost:5000/resumo-diario/${this.cdPaciente}`)
+    this.http.get<any>(`https://geriatric-care.onrender.com/resumo-diario/${this.cdPaciente}`)
       .subscribe(res => {
         this.resumoDiario = Array.isArray(res) ? res : (res?.data ?? []);
       });
@@ -109,7 +109,7 @@ private tema() {
   // =========================
   buscarGraficoDia() {
 
-    this.http.get<any>(`http://localhost:5000/grafico-dia/${this.cdPaciente}`)
+    this.http.get<any>(`https://geriatric-care.onrender.com/grafico-dia/${this.cdPaciente}`)
       .subscribe(res => {
 
         const data = Array.isArray(res) ? res : (res?.data ?? []);
@@ -178,7 +178,7 @@ private tema() {
   // =========================
   buscarGraficoSemana() {
 
-    this.http.get<any>(`http://localhost:5000/grafico-semana/${this.cdPaciente}`)
+    this.http.get<any>(`https://geriatric-care.onrender.com/grafico-semana/${this.cdPaciente}`)
       .subscribe(res => {
 
         const data = Array.isArray(res) ? res : (res?.data ?? []);
@@ -249,7 +249,7 @@ baixarPDF() {
   if (!this.cdPaciente) return;
 
   this.http.get<any>(
-    `http://localhost:5000/resumo-pdf/${this.cdPaciente}`
+    `https://geriatric-care.onrender.com/resumo-pdf/${this.cdPaciente}`
   ).subscribe(res => {
 
     console.log(res);
@@ -468,7 +468,7 @@ enviarMedicos() {
   if (!this.cdPaciente) return;
 
   this.http.get<any>(
-    `http://localhost:5000/resumo-pdf/${this.cdPaciente}`
+    `https://geriatric-care.onrender.com/resumo-pdf/${this.cdPaciente}`
   ).subscribe(res => {
 
     const dados = res?.dados ?? [];
@@ -649,7 +649,7 @@ this.graficoSemana.update();
       // -------------------------
       this.http.post(
 
-        `http://localhost:5000/enviar-medicos/${this.cdPaciente}`,
+        `https://geriatric-care.onrender.com/enviar-medicos/${this.cdPaciente}`,
 
         {
           pdf_base64: pdfBase64
