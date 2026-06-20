@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -10,11 +10,22 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [CommonModule, IonicModule]
 })
-export class PrimeiraPgPage {
+export class PrimeiraPgPage implements OnInit {
 
   pagina = 1;
 
   constructor(private router: Router) {}
+
+  ngOnInit() {
+  const logado = localStorage.getItem('cuidadorLogado');
+
+  if (logado === 'true') {
+    setTimeout(() => {
+      this.router.navigateByUrl('/tabs/home', { replaceUrl: true });
+    }, 50);
+  }
+}
+
 
   proximo() {
     if (this.pagina < 3) this.pagina++;
@@ -25,6 +36,7 @@ export class PrimeiraPgPage {
   }
 
   irParaLogin() {
-    this.router.navigate(['/login']);
-  }
+  localStorage.setItem('onboardingVisto', 'true');
+  this.router.navigate(['/login']);
+}
 }

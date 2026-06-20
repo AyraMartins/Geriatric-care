@@ -241,9 +241,23 @@ cuidador_atual = None
 @app.route('/')
 def home():
 
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT btm_batimentos
+        FROM batimentos
+        ORDER BY dt_hr_batimentos DESC
+        LIMIT 1
+    """)
+
+    ultimo = cursor.fetchone()
+
+    cursor.close()
+    db.close()
+
     return jsonify({
-        "bpm": dados[-1] if dados else 0,
-        "historico": dados[-10:]
+        "bpm": ultimo['btm_batimentos'] if ultimo else 0
     })
 
 # ---------------------------------------------------

@@ -29,6 +29,7 @@ import {
   AlertController
 
 } from '@ionic/angular/standalone';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-configuracoes',
@@ -128,9 +129,10 @@ export class ConfiguracoesPage implements OnInit {
 
   ];
 
-  constructor(
+constructor(
   private http: HttpClient,
-  private alertController: AlertController
+  private alertController: AlertController,
+  private router: Router
 ) { }
 
   ngOnInit() {
@@ -626,4 +628,16 @@ async excluirCuidador(id: number) {
 
   }
 
+  logout() {
+
+    localStorage.clear(); // ou remova só o que usa
+
+    document.body.classList.remove('dark');
+
+    this.router.navigateByUrl('/primeirapg', {
+      replaceUrl: true
+    });
+
+  }
 }
+
