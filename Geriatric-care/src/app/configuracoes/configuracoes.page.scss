@@ -152,3 +152,118 @@ body.dark .info-teste-basal p {
 body.dark .info-teste-basal ion-icon {
   color: #ef5350;
 }
+
+
+
+.tabela-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tabela-basal {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.tabela-basal th,
+.tabela-basal td {
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabela-basal th {
+  font-weight: bold;
+}
+
+.tabela-basal th:nth-child(1),
+.tabela-basal td:nth-child(1) {
+  width: 40%;
+}
+
+.tabela-basal th:nth-child(2),
+.tabela-basal td:nth-child(2) {
+  width: 40%;
+}
+
+.tabela-basal th:nth-child(3),
+.tabela-basal td:nth-child(3) {
+  width: 20%;
+}
+
+.coluna-acao {
+  text-align: center !important;
+  padding: 0 !important;
+}
+
+.botao-excluir {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+}
+
+.botao-excluir ion-icon {
+  font-size: 22px;
+}
+
+
+/* =========================================
+   MODO ESCURO
+   ========================================= */
+
+body.dark {
+  /* SELECT */
+  ion-select {
+    --color: #ffffff;
+    --placeholder-color: #bdbdbd;
+  }
+
+  /* ACCORDION */
+  ion-accordion {
+    --background: #1e1e1e;
+    background: #1e1e1e;
+    color: #ffffff;
+  }
+
+  ion-accordion ion-item {
+    --background: #1e1e1e;
+    --color: #ffffff;
+  }
+
+  ion-accordion ion-label {
+    color: #ffffff;
+  }
+
+  ion-accordion [slot="content"] {
+    background: #1e1e1e;
+    color: #ffffff;
+  }
+
+  /* TEXTOS */
+  ion-card-title,
+  ion-card-subtitle,
+  ion-card-content,
+  h2,
+  h3,
+  p,
+  strong {
+    color: #ffffff;
+  }
+}
+
+.tabela-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+th, td {
+
+  border: 1px solid #ccc;
+
+  padding: 10px;
+
+  text-align: center;
+}

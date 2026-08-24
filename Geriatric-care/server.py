@@ -858,13 +858,27 @@ def resumo_pdf(cd_paciente):
         cursor.execute(sql, (cd_paciente,))
         resumo = cursor.fetchall()
 
+        # BUSCAR ÚLTIMO TESTE BASAL
+        cursor.execute("""
+            SELECT
+                cd_tipo,
+                media_bpm
+            FROM teste_basal
+            WHERE cd_paciente = %s
+            ORDER BY cd_teste_basal DESC
+            LIMIT 1
+        """, (cd_paciente,))
+
+        teste_basal = cursor.fetchone()
+
         cursor.close()
         db.close()
 
         return jsonify({
             "paciente": nm_paciente,
             "cuidador": nm_cuidador,
-            "dados": resumo
+            "dados": resumo,
+            "teste_basal": teste_basal
         })
 
     except Exception as e:
@@ -874,6 +888,7 @@ def resumo_pdf(cd_paciente):
         return jsonify({
             "erro": str(e)
         }), 500
+
 
 # ---------------------------------------------------
 # PACIENTE DO CUIDADOR
@@ -1488,15 +1503,13 @@ def salvar_teste_basal():
         (
             cd_paciente,
             cd_tipo,
-            media_bpm,
-            dt_teste
+            media_bpm
         )
         VALUES
         (
             %s,
             %s,
-            %s,
-            NOW()
+            %s
         )
         """
 
@@ -1511,11 +1524,14 @@ def salvar_teste_basal():
 
         db.commit()
 
+        cd_teste_basal = cursor.lastrowid
+
         cursor.close()
         db.close()
 
         return jsonify({
             "ok": True,
+            "cd_teste_basal": cd_teste_basal,
             "cd_paciente": cd_paciente,
             "cd_tipo": cd_tipo,
             "media_bpm": media_bpm
@@ -1528,7 +1544,6 @@ def salvar_teste_basal():
         return jsonify({
             "erro": str(e)
         }), 500
-
 
 
 # ---------------------------------------------------
