@@ -121,3 +121,34 @@ SELECT ACTION SHEET
 .action-sheet-selected {
   color: #c62828 !important;
 }
+
+
+
+.info-teste-basal {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.info-teste-basal p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.info-teste-basal ion-icon {
+  font-size: 18px;
+  color: #c62828;
+}
+
+/* DARK MODE */
+
+body.dark .info-teste-basal p {
+  color: #ffffff !important;
+}
+
+body.dark .info-teste-basal ion-icon {
+  color: #ef5350;
+}
