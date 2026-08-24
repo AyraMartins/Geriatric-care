@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-
+import { BpmService } from '../services/bpm';
 import {
   IonContent,
   IonHeader,
@@ -25,6 +25,8 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonAccordion,
+  IonAccordionGroup,
   IonInput,
   AlertController
 
@@ -60,6 +62,8 @@ import { Router } from '@angular/router';
     CommonModule,
     IonButton,
     IonModal,
+    IonAccordion,
+    IonAccordionGroup,
     FormsModule
   ]
 })
@@ -112,11 +116,19 @@ testeBasal = {
   iniciando: false
 };
 
+mostrarInstrucoes = false;
+instrucoesAbertas = false;
+
+instrucoesTeste = {
+  titulo: '',
+  texto: ''
+};
 bpmAtual = 0;
 
 tempoRestante = 300;
 
 bpmColetados: number[] = [];
+testesBasais: any[] = [];
 
 private intervaloTeste: any;
 
@@ -152,51 +164,124 @@ private intervaloTeste: any;
 constructor(
   private http: HttpClient,
   private alertController: AlertController,
-  private router: Router
+  private router: Router,
+  private bpmService: BpmService
 ) { }
 
-  ngOnInit() {
+ngOnInit() {
 
-    const tema =
-      localStorage.getItem('modoEscuro');
+  const tema = localStorage.getItem('modoEscuro');
 
-    if (tema === 'true') {
+  if (tema === 'true') {
 
-      this.modoEscuro = true;
+    this.modoEscuro = true;
 
-      document.body.classList.add('dark');
+    document.body.classList.add('dark');
+
+  } else {
+
+    this.modoEscuro = false;
+
+    document.body.classList.remove('dark');
+
+  }
+
+  this.carregarCuidadores();
+
+  // -----------------------------------------
+  // RECEBER BPM
+  // -----------------------------------------
+
+  this.bpmService.bpm$.subscribe(bpm => {
+
+    console.log('CONFIG BPM RECEBIDO:', bpm);
+
+    // Ignora valores nulos
+    if (bpm === null) {
+      return;
+    }
+
+    // Atualiza BPM atual na tela
+    this.bpmAtual = bpm;
+
+    // -----------------------------------------
+    // COLETAR BPM DURANTE TESTE BASAL
+    // -----------------------------------------
+
+    if (this.testeBasal.iniciando && bpm > 0) {
+
+      this.bpmColetados.push(bpm);
+
+      console.log(
+        'BPM COLETADO:',
+        bpm
+      );
+
+      console.log(
+        'TOTAL COLETADOS:',
+        this.bpmColetados.length
+      );
 
     }
 
-    this.carregarCuidadores();
+  });
 
+} 
+selecionarTipoTeste() {
+
+  this.mostrarInstrucoes = false;
+  this.instrucoesAbertas = false;
+
+  if (!this.testeBasal.cd_tipo) {
+    return;
   }
 
-  trocarTema() {
+  this.mostrarInstrucoes = true;
 
-    this.modoEscuro = !this.modoEscuro;
+  switch (Number(this.testeBasal.cd_tipo)) {
 
-    if (this.modoEscuro) {
+    case 1:
+      this.instrucoesTeste = {
+        titulo: 'Como realizar o teste em repouso',
+        texto: '...'
+      };
+      break;
 
-      document.body.classList.add('dark');
+    case 2:
+      this.instrucoesTeste = {
+        titulo: 'Como realizar o teste após caminhada',
+        texto: '...'
+      };
+      break;
 
-      localStorage.setItem(
-        'modoEscuro',
-        'true'
-      );
-
-    } else {
-
-      document.body.classList.remove('dark');
-
-      localStorage.setItem(
-        'modoEscuro',
-        'false'
-      );
-
-    }
-
+    case 3:
+      this.instrucoesTeste = {
+        titulo: 'Como realizar o teste após exercício intenso',
+        texto: '...'
+      };
+      break;
   }
+
+}
+
+toggleInstrucoes() {
+
+  this.instrucoesAbertas = !this.instrucoesAbertas;
+
+}
+
+
+
+
+  trocarTema() { this.modoEscuro = !this.modoEscuro; 
+  
+    if (this.modoEscuro) { document.body.classList.add('dark'); localStorage.setItem( 'modoEscuro', 'true' ); }
+  
+    else { document.body.classList.remove('dark'); localStorage.setItem( 'modoEscuro', 'false' ); } 
+  
+  }
+
+  
 
   abrirModal(item: any) {
 
@@ -220,6 +305,8 @@ constructor(
     if (item.nome === 'Teste Basal') {
 
       this.modalTesteBasal = true;
+      this.carregarTestesBasais();
+
 
     }
 
@@ -655,6 +742,7 @@ async excluirCuidador(id: number) {
 
   }
 
+
   logout() {
 
     localStorage.clear(); // ou remova só o que usa
@@ -667,7 +755,45 @@ async excluirCuidador(id: number) {
 
   }
 
-  iniciarTesteBasal() {
+  carregarTestesBasais() {
+
+  const cd_paciente =
+    localStorage.getItem('cd_paciente');
+
+  if (!cd_paciente) {
+    return;
+  }
+
+  this.http.get<any[]>(
+    `https://geriatric-care.onrender.com/testes-basais/${cd_paciente}`
+  )
+  .subscribe({
+
+    next: (res) => {
+
+      this.testesBasais = res;
+
+      console.log(
+        'TESTES BASAIS:',
+        this.testesBasais
+      );
+
+    },
+
+    error: (erro) => {
+
+      console.log(
+        'ERRO AO CARREGAR TESTES BASAIS:',
+        erro
+      );
+
+    }
+
+  });
+
+}
+
+ iniciarTesteBasal() {
 
   if (!this.testeBasal.cd_tipo) {
 
@@ -677,17 +803,13 @@ async excluirCuidador(id: number) {
 
   }
 
-  // Limpa os dados anteriores
-
   this.bpmColetados = [];
-
+  this.bpmAtual = 0;
   this.tempoRestante = 300;
 
   this.testeBasal.iniciando = true;
 
   console.log('TESTE BASAL INICIADO');
-
-  // Conta 1 segundo por vez
 
   this.intervaloTeste = setInterval(() => {
 
@@ -698,9 +820,19 @@ async excluirCuidador(id: number) {
       this.tempoRestante
     );
 
-    // Terminou os 5 minutos
+    console.log(
+      'BPM atual:',
+      this.bpmAtual
+    );
+
+    console.log(
+      'Valores coletados:',
+      this.bpmColetados
+    );
 
     if (this.tempoRestante <= 0) {
+
+      clearInterval(this.intervaloTeste);
 
       this.finalizarTesteBasal();
 
@@ -709,6 +841,7 @@ async excluirCuidador(id: number) {
   }, 1000);
 
 }
+
 
 cancelarTesteBasal() {
 
@@ -736,6 +869,11 @@ finalizarTesteBasal() {
 
   this.testeBasal.iniciando = false;
 
+  if (this.intervaloTeste) {
+    clearInterval(this.intervaloTeste);
+    this.intervaloTeste = null;
+  }
+
   if (this.bpmColetados.length === 0) {
 
     alert('Nenhum BPM foi coletado durante o teste.');
@@ -754,9 +892,12 @@ finalizarTesteBasal() {
     soma / this.bpmColetados.length
   );
 
-  console.log('BPM coletados:', this.bpmColetados);
-  console.log('Quantidade:', this.bpmColetados.length);
-  console.log('Média:', mediaBpm);
+  console.log('==============================');
+  console.log('TESTE BASAL FINALIZADO');
+  console.log('BPM COLETADOS:', this.bpmColetados);
+  console.log('QUANTIDADE:', this.bpmColetados.length);
+  console.log('MÉDIA:', mediaBpm);
+  console.log('==============================');
 
   const cd_paciente =
     localStorage.getItem('cd_paciente');
@@ -770,25 +911,29 @@ finalizarTesteBasal() {
 
   const body = {
 
-    cd_paciente: cd_paciente,
+    cd_paciente: Number(cd_paciente),
 
-    cd_tipo: this.testeBasal.cd_tipo,
+    cd_tipo: Number(this.testeBasal.cd_tipo),
 
     media_bpm: mediaBpm
 
   };
+
+  console.log('ENVIANDO TESTE BASAL:', body);
 
   this.http.post(
     'https://geriatric-care.onrender.com/teste-basal',
     body
   ).subscribe({
 
-    next: (res) => {
+    next: (res: any) => {
 
       console.log(
         'TESTE BASAL SALVO:',
         res
       );
+
+      this.carregarTestesBasais();
 
       alert(
         `Teste finalizado!\nMédia: ${mediaBpm} BPM`
@@ -818,8 +963,52 @@ finalizarTesteBasal() {
         erro
       );
 
+      console.log(
+        'ERRO DO SERVIDOR:',
+        erro.error
+      );
+
       alert(
         'Erro ao salvar teste basal'
+      );
+
+    }
+
+  });
+
+}
+
+
+async excluirTesteBasal(id: number) {
+
+  const confirmar = confirm(
+    'Deseja realmente excluir este teste?'
+  );
+
+  if (!confirmar) {
+    return;
+  }
+
+  this.http.delete(
+    `https://geriatric-care.onrender.com/teste-basal/${id}`
+  )
+  .subscribe({
+
+    next: () => {
+
+      this.carregarTestesBasais();
+
+    },
+
+    error: (erro) => {
+
+      console.log(
+        'ERRO AO EXCLUIR TESTE:',
+        erro
+      );
+
+      alert(
+        'Erro ao excluir teste basal.'
       );
 
     }

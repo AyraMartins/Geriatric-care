@@ -898,29 +898,30 @@
 
       <!-- TIPO DO TESTE -->
 
-      <ion-select
-        class="input-vermelho"
-        label="Tipo de teste"
-        labelPlacement="floating"
-        [(ngModel)]="testeBasal.cd_tipo">
+  <ion-select
+  [(ngModel)]="testeBasal.cd_tipo"
+  (ionChange)="selecionarTipoTeste()"
+  label="Tipo de teste"
+  labelPlacement="stacked"
+  interface="popover">
 
-        <ion-select-option value="">
-          Selecione
-        </ion-select-option>
+  <ion-select-option [value]="''">
+    Selecione
+  </ion-select-option>
 
-        <ion-select-option value="1">
-          Repouso
-        </ion-select-option>
+  <ion-select-option [value]="'1'">
+    Repouso
+  </ion-select-option>
 
-        <ion-select-option value="2">
-          Caminhando
-        </ion-select-option>
+  <ion-select-option [value]="'2'">
+    Caminhando
+  </ion-select-option>
 
-        <ion-select-option value="3">
-          Exercício intenso
-        </ion-select-option>
+  <ion-select-option [value]="'3'">
+    Exercício intenso
+  </ion-select-option>
 
-      </ion-select>
+</ion-select>
 
      <br>
 
@@ -945,6 +946,128 @@
   </ion-card-content>
 
 </ion-card>
+
+<br>
+<!-- INSTRUÇÕES DO TESTE -->
+
+<ion-accordion-group
+  *ngIf="mostrarInstrucoes && !testeBasal.iniciando">
+
+  <ion-accordion value="instrucoes">
+
+    <!-- CABEÇALHO -->
+
+    <ion-item
+  slot="header"
+  class="accordion-header">
+
+      <ion-label>
+
+        <strong>
+          Como realizar o teste
+        </strong>
+
+        <p>
+          Instruções para realizar o teste selecionado
+        </p>
+
+      </ion-label>
+
+    </ion-item>
+
+    <!-- CONTEÚDO -->
+
+    <div
+      class="ion-padding"
+      slot="content">
+
+      <!-- REPOUSO -->
+
+      <div *ngIf="testeBasal.cd_tipo === '1'">
+
+        <h2>
+          Teste de Repouso
+        </h2>
+
+        <p>
+          Para realizar o teste de repouso, o paciente deve permanecer
+          sentado e tranquilo antes do início da coleta.
+        </p>
+
+        <p>
+          Mantenha uma posição confortável e evite conversar ou realizar
+          movimentos desnecessários durante o teste.
+        </p>
+
+        <p>
+          Permaneça tranquilo enquanto o sistema registra os batimentos
+          cardíacos.
+        </p>
+
+      </div>
+
+      <!-- CAMINHADA -->
+
+      <div *ngIf="testeBasal.cd_tipo === '2'">
+
+        <h2>
+          Teste de Caminhada
+        </h2>
+
+        <p>
+          Para realizar o teste de caminhada, o paciente deve caminhar
+          em um ritmo confortável e constante.
+        </p>
+
+        <p>
+          Evite correr ou realizar movimentos muito intensos.
+        </p>
+
+        <p>
+          O objetivo é registrar os batimentos cardíacos durante a
+          caminhada.
+        </p>
+
+        <p>
+          Caso o paciente apresente algum desconforto, interrompa
+          a atividade.
+        </p>
+
+      </div>
+
+      <!-- EXERCÍCIO INTENSO -->
+
+      <div *ngIf="testeBasal.cd_tipo === '3'">
+
+        <h2>
+          Teste de Exercício Intenso
+        </h2>
+
+        <p>
+          Este teste deve ser realizado somente quando houver orientação
+          adequada para esse nível de esforço.
+        </p>
+
+        <p>
+          Durante o teste, os batimentos cardíacos serão acompanhados
+          pelo sistema.
+        </p>
+
+        <p>
+          Se houver dor, tontura, falta de ar ou qualquer mal-estar,
+          interrompa a atividade e procure ajuda.
+        </p>
+
+      </div>
+
+    </div>
+
+  </ion-accordion>
+
+</ion-accordion-group>
+
+<br>
+
 
 <br>
 
@@ -972,8 +1095,6 @@
 
 </ion-button>
 
-<br>
-
 <ion-button
   expand="block"
   color="medium"
@@ -982,6 +1103,87 @@
   Fechar
 
 </ion-button>
+
+<br><br>
+
+<!-- TABELA DOS TESTES BASAIS -->
+<div class="tabela-container">
+<ion-card>
+
+  <ion-card-header>
+
+    <ion-card-title>
+      Testes realizados
+    </ion-card-title>
+
+    <ion-card-subtitle>
+      Histórico dos testes basais realizados
+    </ion-card-subtitle>
+
+  </ion-card-header>
+
+  <ion-card-content>
+
+    <div class="tabela-container">
+
+      <table class="tabela-basal">
+
+
+          <tr>
+            <th>Tipo</th>
+            <th>Média</th>
+            <th>Ação</th>
+          </tr>
+
+
+          <tr *ngFor="let teste of testesBasais">
+
+            <td>
+              {{ teste.nm_tipo }}
+            </td>
+
+            <td>
+              {{ teste.media_bpm }} BPM
+            </td>
+
+            <td class="coluna-acao">
+
+              <ion-button
+                fill="clear"
+                color="danger"
+                class="botao-excluir"
+                (click)="excluirTesteBasal(teste.cd_teste_basal)">
+
+                <ion-icon
+                  slot="icon-only"
+                  name="trash-outline">
+                </ion-icon>
+
+              </ion-button>
+
+            </td>
+
+          </tr>
+
+
+      </table>
+      
+
+    </div>
+
+    <p
+      *ngIf="testesBasais.length === 0"
+      style="text-align:center;">
+
+      Nenhum teste basal realizado.
+
+    </p>
+
+  </ion-card-content>
+
+</ion-card>
+</div>
+
     </ion-content>
 
   </ng-template>

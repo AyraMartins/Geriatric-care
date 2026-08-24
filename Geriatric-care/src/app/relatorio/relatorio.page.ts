@@ -48,6 +48,7 @@ export class RelatorioPage implements OnInit {
 
   nomePaciente: string = '';
   nomeCuidador: string = '';
+  
 
   constructor(private http: HttpClient) {}
 
@@ -258,6 +259,8 @@ async baixarPDF() {
     const dados = res?.dados ?? [];
     const paciente = res?.paciente ?? '-';
     const cuidador = res?.cuidador ?? '-';
+    const testeBasal = res?.teste_basal ?? null;
+
 
     const doc = new jsPDF();
 
@@ -269,10 +272,37 @@ async baixarPDF() {
     doc.text(`Paciente: ${paciente}`, 14, 35);
     doc.text(`Cuidador: ${cuidador}`, 14, 45);
 
-    // TABELA VERMELHA
+    // TABELA TESTE BASAL
+    if (testeBasal) {
+
+      autoTable(doc, {
+
+        startY: 55,
+
+        head: [[
+          'Teste Basal',
+          'Média BPM'
+        ]],
+
+        body: [[
+          `Tipo ${testeBasal.cd_tipo}`,
+          testeBasal.media_bpm ?? '-'
+        ]],
+
+        headStyles: {
+          fillColor: [255, 77, 77],
+          textColor: [255, 255, 255]
+        }
+
+      });
+    }
+
+    // TABELA DOS DADOS
     autoTable(doc, {
 
-      startY: 55,
+      startY: testeBasal
+        ? (doc as any).lastAutoTable.finalY + 10
+        : 55,
 
       head: [[
         'Data',
@@ -294,7 +324,6 @@ async baixarPDF() {
       }
 
     });
-
     let y =
       (doc as any)
       .lastAutoTable
@@ -453,6 +482,9 @@ enviarMedicos() {
     const cuidador =
       res?.cuidador ?? '-';
 
+    const testeBasal = res?.teste_basal ?? null;
+    
+
     // -------------------------
     // PDF
     // -------------------------
@@ -480,12 +512,45 @@ enviarMedicos() {
       45
     );
 
+
+
+
+    // =========================
+// TABELA TESTE BASAL
+// =========================
+
+if (testeBasal) {
+
+  autoTable(doc, {
+
+    startY: 55,
+
+    head: [[
+      'Teste Basal',
+      'Média BPM'
+    ]],
+
+    body: [[
+      `Tipo ${testeBasal.cd_tipo}`,
+      testeBasal.media_bpm ?? '-'
+    ]],
+
+    headStyles: {
+      fillColor: [255, 77, 77],
+      textColor: [255, 255, 255]
+    }
+
+  });
+
+}
     // -------------------------
     // TABELA
     // -------------------------
     autoTable(doc, {
 
-      startY: 55,
+    startY: testeBasal
+    ? (doc as any).lastAutoTable.finalY + 10
+    : 55,
 
       styles: {
         fontSize: 11,
