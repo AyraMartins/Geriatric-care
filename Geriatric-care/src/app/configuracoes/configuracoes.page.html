@@ -338,6 +338,9 @@
         Fechar
 
       </ion-button>
+      <ion-button color="danger" expand="block" (click)="logout()">
+      Sair da conta
+      </ion-button>
 
     </ion-content>
 
@@ -560,6 +563,8 @@
         Cancelar
 
       </ion-button>
+
+      
 
     </ion-content>
 
@@ -850,7 +855,138 @@
 
   </ion-modal>
 
+<!-- MODAL TESTE BASAL -->
 
+<ion-modal [isOpen]="modalTesteBasal">
+
+  <ng-template>
+
+    <ion-header>
+
+      <ion-toolbar>
+
+        <ion-title>
+          Teste Basal
+        </ion-title>
+
+      </ion-toolbar>
+
+    </ion-header>
+
+    <ion-content class="ion-padding">
+
+      <h2>
+        Teste de Batimentos
+      </h2>
+      <div
+  class="info-teste-basal"
+  (click)="presentAlertTesteBasal()">
+
+  <p>
+    O que é um teste basal?
+  </p>
+
+  <ion-icon
+    name="information-circle-outline">
+  </ion-icon>
+
+</div>
+
+      <p>
+        Selecione o tipo de teste que deseja realizar.
+      </p>
+
+      <!-- TIPO DO TESTE -->
+
+      <ion-select
+        class="input-vermelho"
+        label="Tipo de teste"
+        labelPlacement="floating"
+        [(ngModel)]="testeBasal.cd_tipo">
+
+        <ion-select-option value="">
+          Selecione
+        </ion-select-option>
+
+        <ion-select-option value="1">
+          Repouso
+        </ion-select-option>
+
+        <ion-select-option value="2">
+          Caminhando
+        </ion-select-option>
+
+        <ion-select-option value="3">
+          Exercício intenso
+        </ion-select-option>
+
+      </ion-select>
+
+     <br>
+
+<!-- BPM ATUAL -->
+
+<ion-card *ngIf="testeBasal.iniciando">
+
+  <ion-card-content>
+
+    <h2>
+      BPM atual: {{ bpmAtual }}
+    </h2>
+
+    <h3>
+      Tempo restante: {{ tempoRestante }}
+    </h3>
+
+    <p>
+      Valores coletados: {{ bpmColetados.length }}
+    </p>
+
+  </ion-card-content>
+
+</ion-card>
+
+<br>
+
+<!-- INICIAR -->
+
+<ion-button
+  expand="block"
+  color="danger"
+  *ngIf="!testeBasal.iniciando"
+  (click)="iniciarTesteBasal()">
+
+  Iniciar teste
+
+</ion-button>
+
+<!-- FINALIZAR -->
+
+<ion-button
+  expand="block"
+  color="medium"
+  *ngIf="testeBasal.iniciando"
+  (click)="cancelarTesteBasal()">
+
+  Cancelar teste
+
+</ion-button>
+
+<br>
+
+<ion-button
+  expand="block"
+  color="medium"
+  (click)="fecharModais()">
+
+  Fechar
+
+</ion-button>
+    </ion-content>
+
+  </ng-template>
+
+</ion-modal>
   <!-- MODAL AJUDA -->
 
 <ion-modal [isOpen]="modalAjuda">

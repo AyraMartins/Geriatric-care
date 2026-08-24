@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-
+import {
+  Filesystem,
+  Directory
+} from '@capacitor/filesystem';
 import {
   Chart,
   LineController,
@@ -244,71 +247,32 @@ private tema() {
 // =========================
 // PDF
 // =========================
-baixarPDF() {
+async baixarPDF() {
 
   if (!this.cdPaciente) return;
 
   this.http.get<any>(
     `https://geriatric-care.onrender.com/resumo-pdf/${this.cdPaciente}`
-  ).subscribe(res => {
+  ).subscribe(async (res) => {
 
-    console.log(res);
-
-    // -------------------------
-    // DADOS
-    // -------------------------
     const dados = res?.dados ?? [];
+    const paciente = res?.paciente ?? '-';
+    const cuidador = res?.cuidador ?? '-';
 
-    const paciente =
-      res?.paciente ?? '-';
-
-    const cuidador =
-      res?.cuidador ?? '-';
-
-    // -------------------------
-    // PDF
-    // -------------------------
     const doc = new jsPDF();
 
+    // TÍTULO
     doc.setFontSize(20);
-
-    doc.text(
-      'Relatório BPM',
-      14,
-      20
-    );
+    doc.text('Relatório BPM', 14, 20);
 
     doc.setFontSize(12);
+    doc.text(`Paciente: ${paciente}`, 14, 35);
+    doc.text(`Cuidador: ${cuidador}`, 14, 45);
 
-    doc.text(
-      `Paciente: ${paciente}`,
-      14,
-      35
-    );
-
-    doc.text(
-      `Cuidador: ${cuidador}`,
-      14,
-      45
-    );
-
-    // -------------------------
-    // TABELA
-    // -------------------------
+    // TABELA VERMELHA
     autoTable(doc, {
 
       startY: 55,
-
-      styles: {
-        fontSize: 11,
-        cellPadding: 4
-      },
-
-      headStyles: {
-        fillColor: [255, 77, 77],
-        textColor: 255,
-        fontSize: 12
-      },
 
       head: [[
         'Data',
@@ -318,55 +282,48 @@ baixarPDF() {
       ]],
 
       body: dados.map((i: any) => [
-
         i.data ?? '-',
-
         i.media ?? '-',
-
         i.maximo ?? '-',
-
         i.minimo ?? '-'
+      ]),
 
-      ])
+      headStyles: {
+        fillColor: [255, 77, 77],
+        textColor: [255, 255, 255]
+      }
+
     });
 
-    // -------------------------
-    // POSIÇÃO Y
-    // -------------------------
     let y =
       (doc as any)
       .lastAutoTable
       .finalY + 20;
 
-
-// ==========================
-// FORÇAR CORES PDF
-// ==========================
+    // FORÇA TEXTO PRETO NOS GRÁFICOS
     this.graficoDia.options.scales.x.ticks.color = '#000';
     this.graficoDia.options.scales.y.ticks.color = '#000';
-
-    this.graficoSemana.options.scales.x.ticks.color = '#000';
-    this.graficoSemana.options.scales.y.ticks.color = '#000';
-
     this.graficoDia.options.scales.x.title.color = '#000';
     this.graficoDia.options.scales.y.title.color = '#000';
 
+    this.graficoSemana.options.scales.x.ticks.color = '#000';
+    this.graficoSemana.options.scales.y.ticks.color = '#000';
     this.graficoSemana.options.scales.x.title.color = '#000';
     this.graficoSemana.options.scales.y.title.color = '#000';
 
     this.graficoDia.update();
     this.graficoSemana.update();
-    // -------------------------
-    // AGUARDAR GRÁFICOS
-    // -------------------------
-    setTimeout(() => {
 
-      // -------------------------
-      // GRÁFICO DIA
-      // -------------------------
+    setTimeout(async () => {
+
       const c1 =
         document.getElementById(
           'graficoDia'
+        ) as HTMLCanvasElement;
+
+      const c2 =
+        document.getElementById(
+          'graficoSemana'
         ) as HTMLCanvasElement;
 
       if (c1) {
@@ -391,23 +348,12 @@ baixarPDF() {
         y += 100;
       }
 
-      // -------------------------
-      // NOVA PÁGINA
-      // -------------------------
       if (y > 220) {
 
         doc.addPage();
 
         y = 20;
       }
-
-      // -------------------------
-      // GRÁFICO SEMANA
-      // -------------------------
-      const c2 =
-        document.getElementById(
-          'graficoSemana'
-        ) as HTMLCanvasElement;
 
       if (c2) {
 
@@ -429,35 +375,63 @@ baixarPDF() {
         );
       }
 
-      // -------------------------
-      // SALVAR
-      // -------------------------
-      doc.save(
-        'relatorio-bpm.pdf'
-      );
+      try {
 
-// ==========================
-// RESTAURAR TEMA
-// ==========================
-const t = this.tema();
+        const pdfBase64 =
+          doc.output('datauristring')
+          .split(',')[1];
 
-this.graficoDia.options.scales.x.ticks.color = t.text;
-this.graficoDia.options.scales.y.ticks.color = t.text;
+        await Filesystem.writeFile({
 
-this.graficoSemana.options.scales.x.ticks.color = t.text;
-this.graficoSemana.options.scales.y.ticks.color = t.text;
+          path:
+            `relatorio-bpm-${Date.now()}.pdf`,
 
-this.graficoDia.options.scales.x.title.color = t.text;
-this.graficoDia.options.scales.y.title.color = t.text;
+          data:
+            pdfBase64,
 
-this.graficoSemana.options.scales.x.title.color = t.text;
-this.graficoSemana.options.scales.y.title.color = t.text;
+          directory:
+            Directory.Documents
 
-this.graficoDia.update();
-this.graficoSemana.update();
+        });
+
+        alert(
+          'PDF salvo com sucesso!'
+        );
+
+      } catch (err: any) {
+
+        console.error(
+          'ERRO PDF:',
+          err
+        );
+
+        alert(
+          'Erro ao salvar PDF: ' +
+          JSON.stringify(err)
+        );
+
+      }
+
+      // RESTAURA CORES ORIGINAIS
+      const t = this.tema();
+
+      this.graficoDia.options.scales.x.ticks.color = t.text;
+      this.graficoDia.options.scales.y.ticks.color = t.text;
+      this.graficoDia.options.scales.x.title.color = t.text;
+      this.graficoDia.options.scales.y.title.color = t.text;
+
+      this.graficoSemana.options.scales.x.ticks.color = t.text;
+      this.graficoSemana.options.scales.y.ticks.color = t.text;
+      this.graficoSemana.options.scales.x.title.color = t.text;
+      this.graficoSemana.options.scales.y.title.color = t.text;
+
+      this.graficoDia.update();
+      this.graficoSemana.update();
 
     }, 500);
+
   });
+
 }
 
 // =========================

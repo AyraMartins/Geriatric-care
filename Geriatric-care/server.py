@@ -241,9 +241,23 @@ cuidador_atual = None
 @app.route('/')
 def home():
 
+    db = conectar()
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT btm_batimentos
+        FROM batimentos
+        ORDER BY dt_hr_batimentos DESC
+        LIMIT 1
+    """)
+
+    ultimo = cursor.fetchone()
+
+    cursor.close()
+    db.close()
+
     return jsonify({
-        "bpm": dados[-1] if dados else 0,
-        "historico": dados[-10:]
+        "bpm": ultimo['btm_batimentos'] if ultimo else 0
     })
 
 # ---------------------------------------------------
@@ -1435,6 +1449,87 @@ def editar_conta(cd_cuidador):
         return jsonify({
             "erro": str(e)
         }), 500
+
+# ---------------------------------------------------
+# TESTE BASAL
+# ---------------------------------------------------
+@app.route('/teste-basal', methods=['POST'])
+def salvar_teste_basal():
+
+    try:
+
+        data = request.json
+
+        cd_paciente = data.get('cd_paciente')
+        cd_tipo = data.get('cd_tipo')
+        media_bpm = data.get('media_bpm')
+
+        if not cd_paciente:
+            return jsonify({
+                "erro": "Paciente não informado"
+            }), 400
+
+        if not cd_tipo:
+            return jsonify({
+                "erro": "Tipo do teste não informado"
+            }), 400
+
+        if media_bpm is None:
+            return jsonify({
+                "erro": "Média de BPM não informada"
+            }), 400
+
+        db = conectar()
+
+        cursor = db.cursor()
+
+        sql = """
+        INSERT INTO teste_basal
+        (
+            cd_paciente,
+            cd_tipo,
+            media_bpm,
+            dt_teste
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            NOW()
+        )
+        """
+
+        cursor.execute(
+            sql,
+            (
+                cd_paciente,
+                cd_tipo,
+                media_bpm
+            )
+        )
+
+        db.commit()
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True,
+            "cd_paciente": cd_paciente,
+            "cd_tipo": cd_tipo,
+            "media_bpm": media_bpm
+        })
+
+    except Exception as e:
+
+        print("ERRO TESTE BASAL:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
 
 # ---------------------------------------------------
 # START SERVER

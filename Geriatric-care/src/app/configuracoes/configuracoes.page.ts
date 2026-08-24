@@ -29,6 +29,7 @@ import {
   AlertController
 
 } from '@ionic/angular/standalone';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-configuracoes',
@@ -70,7 +71,7 @@ export class ConfiguracoesPage implements OnInit {
   modalCuidadores = false;
   modalAjuda = false;
   modalNovoCuidador = false;
-
+  modalTesteBasal = false;
   modalEditarConta = false;
 
   tipoEdicao = '';
@@ -106,6 +107,20 @@ export class ConfiguracoesPage implements OnInit {
 
   };
 
+testeBasal = {
+  cd_tipo: '',
+  iniciando: false
+};
+
+bpmAtual = 0;
+
+tempoRestante = 300;
+
+bpmColetados: number[] = [];
+
+private intervaloTeste: any;
+
+
   configuracoes = [
 
     {
@@ -120,6 +135,12 @@ export class ConfiguracoesPage implements OnInit {
       icone: 'people-outline'
     },
 
+     {
+      nome: 'Teste Basal',
+      descricao: 'Teste basal',
+      icone: 'heart-outline'
+    },
+
     {
       nome: 'Ajuda',
       descricao: 'Central de ajuda',
@@ -128,9 +149,10 @@ export class ConfiguracoesPage implements OnInit {
 
   ];
 
-  constructor(
+constructor(
   private http: HttpClient,
-  private alertController: AlertController
+  private alertController: AlertController,
+  private router: Router
 ) { }
 
   ngOnInit() {
@@ -195,6 +217,11 @@ export class ConfiguracoesPage implements OnInit {
       this.carregarCuidadores();
 
     }
+    if (item.nome === 'Teste Basal') {
+
+      this.modalTesteBasal = true;
+
+    }
 
     if (item.nome === 'Ajuda') {
 
@@ -208,7 +235,9 @@ export class ConfiguracoesPage implements OnInit {
 
     this.modalConta = false;
     this.modalCuidadores = false;
+    this.modalTesteBasal = false;
     this.modalAjuda = false;
+
 
   }
 
@@ -626,4 +655,205 @@ async excluirCuidador(id: number) {
 
   }
 
+  logout() {
+
+    localStorage.clear(); // ou remova só o que usa
+
+    document.body.classList.remove('dark');
+
+    this.router.navigateByUrl('/primeirapg', {
+      replaceUrl: true
+    });
+
+  }
+
+  iniciarTesteBasal() {
+
+  if (!this.testeBasal.cd_tipo) {
+
+    alert('Selecione o tipo do teste');
+
+    return;
+
+  }
+
+  // Limpa os dados anteriores
+
+  this.bpmColetados = [];
+
+  this.tempoRestante = 300;
+
+  this.testeBasal.iniciando = true;
+
+  console.log('TESTE BASAL INICIADO');
+
+  // Conta 1 segundo por vez
+
+  this.intervaloTeste = setInterval(() => {
+
+    this.tempoRestante--;
+
+    console.log(
+      'Tempo restante:',
+      this.tempoRestante
+    );
+
+    // Terminou os 5 minutos
+
+    if (this.tempoRestante <= 0) {
+
+      this.finalizarTesteBasal();
+
+    }
+
+  }, 1000);
+
 }
+
+cancelarTesteBasal() {
+
+  if (this.intervaloTeste) {
+
+    clearInterval(this.intervaloTeste);
+
+    this.intervaloTeste = null;
+
+  }
+
+  this.testeBasal.iniciando = false;
+
+  this.tempoRestante = 300;
+
+  this.bpmColetados = [];
+
+  this.bpmAtual = 0;
+
+  console.log('TESTE BASAL CANCELADO');
+
+}
+
+finalizarTesteBasal() {
+
+  this.testeBasal.iniciando = false;
+
+  if (this.bpmColetados.length === 0) {
+
+    alert('Nenhum BPM foi coletado durante o teste.');
+
+    this.tempoRestante = 300;
+
+    return;
+  }
+
+  const soma = this.bpmColetados.reduce(
+    (total, bpm) => total + bpm,
+    0
+  );
+
+  const mediaBpm = Math.round(
+    soma / this.bpmColetados.length
+  );
+
+  console.log('BPM coletados:', this.bpmColetados);
+  console.log('Quantidade:', this.bpmColetados.length);
+  console.log('Média:', mediaBpm);
+
+  const cd_paciente =
+    localStorage.getItem('cd_paciente');
+
+  if (!cd_paciente) {
+
+    alert('Paciente não encontrado');
+
+    return;
+  }
+
+  const body = {
+
+    cd_paciente: cd_paciente,
+
+    cd_tipo: this.testeBasal.cd_tipo,
+
+    media_bpm: mediaBpm
+
+  };
+
+  this.http.post(
+    'https://geriatric-care.onrender.com/teste-basal',
+    body
+  ).subscribe({
+
+    next: (res) => {
+
+      console.log(
+        'TESTE BASAL SALVO:',
+        res
+      );
+
+      alert(
+        `Teste finalizado!\nMédia: ${mediaBpm} BPM`
+      );
+
+      this.testeBasal = {
+
+        cd_tipo: '',
+        iniciando: false
+
+      };
+
+      this.tempoRestante = 300;
+
+      this.bpmColetados = [];
+
+      this.bpmAtual = 0;
+
+      this.modalTesteBasal = false;
+
+    },
+
+    error: (erro) => {
+
+      console.log(
+        'ERRO TESTE BASAL:',
+        erro
+      );
+
+      alert(
+        'Erro ao salvar teste basal'
+      );
+
+    }
+
+  });
+
+}
+
+
+async presentAlertTesteBasal() {
+
+  const alert = await this.alertController.create({
+
+    header: 'Teste Basal',
+
+    subHeader: 'Teste de batimentos cardíacos',
+
+    message:
+      'O teste basal é realizado para registrar a frequência cardíaca do paciente em uma determinada condição. ' +
+      'Primeiro, selecione o tipo de teste: repouso, caminhada ou exercício intenso. ' +
+      'Durante o teste, os batimentos cardíacos serão acompanhados pelo sistema. ' +
+      'Ao final, informe a média de BPM registrada para salvar o resultado.',
+
+    buttons: [
+      {
+        text: 'Entendi',
+        role: 'confirm'
+      }
+    ]
+
+  });
+
+  await alert.present();
+
+}
+}
+
