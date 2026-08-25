@@ -1495,42 +1495,93 @@ def salvar_teste_basal():
             }), 400
 
         db = conectar()
+        cursor = db.cursor(dictionary=True)
 
-        cursor = db.cursor()
-
-        sql = """
-        INSERT INTO teste_basal
-        (
-            cd_paciente,
-            cd_tipo,
-            media_bpm
-        )
-        VALUES
-        (
-            %s,
-            %s,
-            %s
-        )
+        # -----------------------------------------
+        # VERIFICAR SE JÁ EXISTE
+        # -----------------------------------------
+        sql_buscar = """
+        SELECT cd_teste_basal
+        FROM teste_basal
+        WHERE cd_paciente = %s
+        AND cd_tipo = %s
+        LIMIT 1
         """
 
         cursor.execute(
-            sql,
+            sql_buscar,
+            (
+                cd_paciente,
+                cd_tipo
+            )
+        )
+
+        teste_existente = cursor.fetchone()
+
+        # -----------------------------------------
+        # SE EXISTE -> ATUALIZA
+        # -----------------------------------------
+        if teste_existente:
+
+            sql_update = """
+            UPDATE teste_basal
+            SET media_bpm = %s
+            WHERE cd_teste_basal = %s
+            """
+
+            cursor.execute(
+                sql_update,
+                (
+                    media_bpm,
+                    teste_existente['cd_teste_basal']
+                )
+            )
+
+            cd_teste_basal = teste_existente['cd_teste_basal']
+
+            acao = "atualizado"
+
+        # -----------------------------------------
+        # SE NÃO EXISTE -> CRIA
+        # -----------------------------------------
+        else:
+
+            sql_insert = """
+            INSERT INTO teste_basal
             (
                 cd_paciente,
                 cd_tipo,
                 media_bpm
             )
-        )
+            VALUES
+            (
+                %s,
+                %s,
+                %s
+            )
+            """
+
+            cursor.execute(
+                sql_insert,
+                (
+                    cd_paciente,
+                    cd_tipo,
+                    media_bpm
+                )
+            )
+
+            cd_teste_basal = cursor.lastrowid
+
+            acao = "criado"
 
         db.commit()
-
-        cd_teste_basal = cursor.lastrowid
 
         cursor.close()
         db.close()
 
         return jsonify({
             "ok": True,
+            "acao": acao,
             "cd_teste_basal": cd_teste_basal,
             "cd_paciente": cd_paciente,
             "cd_tipo": cd_tipo,
@@ -1546,6 +1597,166 @@ def salvar_teste_basal():
         }), 500
 
 
+
+# ---------------------------------------------------
+# EDITAR TESTE BASAL
+# ---------------------------------------------------
+@app.route('/teste-basal/<int:id>', methods=['PUT'])
+def editar_teste_basal(id):
+
+    try:
+
+        data = request.json
+
+        cd_tipo = data.get('cd_tipo')
+        media_bpm = data.get('media_bpm')
+
+        if not cd_tipo:
+            return jsonify({
+                "erro": "Tipo do teste não informado"
+            }), 400
+
+        if media_bpm is None:
+            return jsonify({
+                "erro": "Média de BPM não informada"
+            }), 400
+
+        db = conectar()
+        cursor = db.cursor()
+
+        # -----------------------------------------
+        # ATUALIZAR
+        # -----------------------------------------
+        sql = """
+        UPDATE teste_basal
+        SET
+            cd_tipo = %s,
+            media_bpm = %s
+        WHERE cd_teste_basal = %s
+        """
+
+        cursor.execute(
+            sql,
+            (
+                cd_tipo,
+                media_bpm,
+                id
+            )
+        )
+
+        db.commit()
+
+        if cursor.rowcount == 0:
+
+            cursor.close()
+            db.close()
+
+            return jsonify({
+                "erro": "Teste basal não encontrado"
+            }), 404
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True,
+            "msg": "Teste basal atualizado"
+        })
+
+    except Exception as e:
+
+        print("ERRO EDITAR TESTE BASAL:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+# ---------------------------------------------------
+# EXCLUIR TESTE BASAL
+# ---------------------------------------------------
+@app.route('/teste-basal/<int:id>', methods=['DELETE'])
+def excluir_teste_basal(id):
+
+    try:
+
+        db = conectar()
+        cursor = db.cursor()
+
+        sql = """
+        DELETE FROM teste_basal
+        WHERE cd_teste_basal = %s
+        """
+
+        cursor.execute(sql, (id,))
+
+        db.commit()
+
+        if cursor.rowcount == 0:
+
+            cursor.close()
+            db.close()
+
+            return jsonify({
+                "erro": "Teste basal não encontrado"
+            }), 404
+
+        cursor.close()
+        db.close()
+
+        return jsonify({
+            "ok": True,
+            "msg": "Teste basal excluído"
+        })
+
+    except Exception as e:
+
+        print("ERRO EXCLUIR TESTE BASAL:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+
+# ---------------------------------------------------
+# LISTAR TESTES BASAIS
+# ---------------------------------------------------
+@app.route('/testes-basais/<int:cd_paciente>')
+def listar_testes_basais(cd_paciente):
+
+    try:
+
+        db = conectar()
+
+        cursor = db.cursor(dictionary=True)
+
+        sql = """
+        SELECT
+            cd_teste_basal,
+            cd_paciente,
+            cd_tipo,
+            media_bpm
+        FROM teste_basal
+        WHERE cd_paciente = %s
+        ORDER BY cd_teste_basal DESC
+        """
+
+        cursor.execute(sql, (cd_paciente,))
+
+        testes = cursor.fetchall()
+
+        cursor.close()
+        db.close()
+
+        return jsonify(testes)
+
+    except Exception as e:
+
+        print("ERRO AO LISTAR TESTES BASAIS:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
 # ---------------------------------------------------
 # START SERVER
 # ---------------------------------------------------

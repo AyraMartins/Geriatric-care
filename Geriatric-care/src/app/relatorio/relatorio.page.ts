@@ -260,6 +260,15 @@ async baixarPDF() {
     const paciente = res?.paciente ?? '-';
     const cuidador = res?.cuidador ?? '-';
     const testeBasal = res?.teste_basal ?? null;
+    const tipos: any = {
+      1: 'Repouso',
+      2: 'Caminhando',
+      3: 'Exercício intenso'
+    };
+
+const tipo = testeBasal
+  ? tipos[testeBasal.cd_tipo] ?? '-'
+  : '-';
 
 
     const doc = new jsPDF();
@@ -285,7 +294,7 @@ async baixarPDF() {
         ]],
 
         body: [[
-          `Tipo ${testeBasal.cd_tipo}`,
+          tipo,
           testeBasal.media_bpm ?? '-'
         ]],
 
@@ -483,6 +492,14 @@ enviarMedicos() {
       res?.cuidador ?? '-';
 
     const testeBasal = res?.teste_basal ?? null;
+
+    const tipos: any = {
+      1: 'Repouso',
+      2: 'Caminhando',
+      3: 'Exercício intenso'
+    };
+    
+    const tipo = testeBasal ? tipos[testeBasal.cd_tipo] ?? '-' : '-';
     
 
     // -------------------------
@@ -531,7 +548,7 @@ if (testeBasal) {
     ]],
 
     body: [[
-      `Tipo ${testeBasal.cd_tipo}`,
+      tipo,
       testeBasal.media_bpm ?? '-'
     ]],
 
