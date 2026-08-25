@@ -1105,84 +1105,177 @@
 </ion-button>
 
 <br><br>
-
 <!-- TABELA DOS TESTES BASAIS -->
+
 <div class="tabela-container">
-<ion-card>
 
-  <ion-card-header>
+  <ion-card>
 
-    <ion-card-title>
-      Testes realizados
-    </ion-card-title>
+    <ion-card-header>
 
-    <ion-card-subtitle>
-      Histórico dos testes basais realizados
-    </ion-card-subtitle>
+      <ion-card-title>
+        Testes realizados
+      </ion-card-title>
 
-  </ion-card-header>
+      <ion-card-subtitle>
+        Histórico dos testes basais realizados
+      </ion-card-subtitle>
 
-  <ion-card-content>
+    </ion-card-header>
 
-    <div class="tabela-container">
+    <ion-card-content>
 
-      <table class="tabela-basal">
+      <div class="tabela-container">
 
+        <table class="tabela-basal">
 
-          <tr>
-            <th>Tipo</th>
-            <th>Média</th>
-            <th>Ação</th>
-          </tr>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Média</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
 
+          <tbody>
 
-          <tr *ngFor="let teste of testesBasais">
+            <tr *ngFor="let teste of testesBasais">
 
-            <td>
-              {{ teste.nm_tipo }}
-            </td>
+              <!-- TIPO -->
+              <td>
+                {{ teste.nm_tipo }}
+              </td>
 
-            <td>
-              {{ teste.media_bpm }} BPM
-            </td>
+              <!-- MÉDIA -->
+              <td>
+                {{ teste.media_bpm }} BPM
+              </td>
 
-            <td class="coluna-acao">
+              <!-- AÇÕES -->
+              <td class="coluna-acao">
 
-              <ion-button
-                fill="clear"
-                color="danger"
-                class="botao-excluir"
-                (click)="excluirTesteBasal(teste.cd_teste_basal)">
+                <!-- EDITAR -->
+                <ion-button
+                  fill="clear"
+                  color="primary"
+                  class="botao-editar"
+                  (click)="editarTesteBasal(teste)">
 
-                <ion-icon
-                  slot="icon-only"
-                  name="trash-outline">
-                </ion-icon>
+                  <ion-icon
+                    slot="icon-only"
+                    name="create-outline">
+                  </ion-icon>
 
-              </ion-button>
+                </ion-button>
 
-            </td>
+                <!-- EXCLUIR -->
+                <ion-button
+                  fill="clear"
+                  color="danger"
+                  class="botao-excluir"
+                  (click)="excluirTesteBasal(teste.cd_teste_basal)">
 
-          </tr>
+                  <ion-icon
+                    slot="icon-only"
+                    name="trash-outline">
+                  </ion-icon>
 
+                </ion-button>
 
-      </table>
-      
+              </td>
 
-    </div>
+            </tr>
 
-    <p
-      *ngIf="testesBasais.length === 0"
-      style="text-align:center;">
+          </tbody>
 
-      Nenhum teste basal realizado.
+        </table>
 
-    </p>
+      </div>
 
-  </ion-card-content>
+      <p
+        *ngIf="testesBasais.length === 0"
+        style="text-align:center;">
 
-</ion-card>
+        Nenhum teste basal realizado.
+
+      </p>
+
+    </ion-card-content>
+
+  </ion-card>
+
 </div>
+
+</ion-content>
+
+</ng-template>
+
+</ion-modal>
+
+
+<!-- MODAL AJUDA -->
+
+<ion-modal [isOpen]="modalAjuda">
+
+  <ng-template>
+
+    <ion-header>
+
+      <ion-toolbar>
+
+        <ion-title>
+          Ajuda
+        </ion-title>
+
+      </ion-toolbar>
+
+    </ion-header>
+
+    <ion-content class="ion-padding">
+
+      <h2>
+        Suporte
+      </h2>
+
+      <p>
+        Envie sua dúvida ou problema
+      </p>
+
+      <ion-input
+        class="input-vermelho"
+        label="Assunto"
+        labelPlacement="floating"
+        [(ngModel)]="ajuda.assunto">
+      </ion-input>
+
+      <br>
+
+      <ion-input
+        class="input-vermelho"
+        label="Descrição"
+        labelPlacement="floating"
+        [(ngModel)]="ajuda.descricao">
+      </ion-input>
+
+      <br><br>
+
+      <ion-button
+        expand="block"
+        color="danger"
+        (click)="enviarAjuda()">
+
+        Enviar
+
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        color="medium"
+        (click)="fecharModais()">
+
+        Fechar
+
+      </ion-button>
 
     </ion-content>
 

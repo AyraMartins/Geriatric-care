@@ -119,6 +119,8 @@ testeBasal = {
 mostrarInstrucoes = false;
 instrucoesAbertas = false;
 
+editandoTesteBasal = false;
+
 instrucoesTeste = {
   titulo: '',
   texto: ''
@@ -771,7 +773,20 @@ async excluirCuidador(id: number) {
 
     next: (res) => {
 
-      this.testesBasais = res;
+      this.testesBasais = res.map(teste => ({
+
+        ...teste,
+
+        nm_tipo:
+          Number(teste.cd_tipo) === 1
+            ? 'Repouso'
+            : Number(teste.cd_tipo) === 2
+              ? 'Caminhando'
+              : Number(teste.cd_tipo) === 3
+                ? 'Exercício intenso'
+                : '-'
+
+      }));
 
       console.log(
         'TESTES BASAIS:',
@@ -870,17 +885,23 @@ finalizarTesteBasal() {
   this.testeBasal.iniciando = false;
 
   if (this.intervaloTeste) {
+
     clearInterval(this.intervaloTeste);
+
     this.intervaloTeste = null;
+
   }
 
   if (this.bpmColetados.length === 0) {
 
-    alert('Nenhum BPM foi coletado durante o teste.');
+    alert(
+      'Nenhum BPM foi coletado durante o teste.'
+    );
 
     this.tempoRestante = 300;
 
     return;
+
   }
 
   const soma = this.bpmColetados.reduce(
@@ -892,13 +913,6 @@ finalizarTesteBasal() {
     soma / this.bpmColetados.length
   );
 
-  console.log('==============================');
-  console.log('TESTE BASAL FINALIZADO');
-  console.log('BPM COLETADOS:', this.bpmColetados);
-  console.log('QUANTIDADE:', this.bpmColetados.length);
-  console.log('MÉDIA:', mediaBpm);
-  console.log('==============================');
-
   const cd_paciente =
     localStorage.getItem('cd_paciente');
 
@@ -907,23 +921,90 @@ finalizarTesteBasal() {
     alert('Paciente não encontrado');
 
     return;
+
   }
 
   const body = {
 
     cd_paciente: Number(cd_paciente),
 
-    cd_tipo: Number(this.testeBasal.cd_tipo),
+    cd_tipo: Number(
+      this.testeBasal.cd_tipo
+    ),
 
     media_bpm: mediaBpm
 
   };
 
-  console.log('ENVIANDO TESTE BASAL:', body);
+  console.log(
+    'SALVANDO TESTE BASAL:',
+    body
+  );
+
+  // =========================================
+  // EDITANDO
+  // =========================================
+
+  if (this.editandoTesteBasal && this.editarId) {
+
+    this.http.put(
+
+      `https://geriatric-care.onrender.com/teste-basal/${this.editarId}`,
+
+      body
+
+    ).subscribe({
+
+      next: () => {
+
+        console.log(
+          'TESTE BASAL ATUALIZADO'
+        );
+
+        alert(
+          `Teste atualizado!\nMédia: ${mediaBpm} BPM`
+        );
+
+        this.resetarTesteBasal();
+
+        this.carregarTestesBasais();
+
+      },
+
+      error: (erro) => {
+
+        console.log(
+          'ERRO AO EDITAR TESTE:',
+          erro
+        );
+
+        console.log(
+          'ERRO SERVIDOR:',
+          erro.error
+        );
+
+        alert(
+          'Erro ao atualizar teste basal.'
+        );
+
+      }
+
+    });
+
+    return;
+
+  }
+
+  // =========================================
+  // NOVO TESTE
+  // =========================================
 
   this.http.post(
+
     'https://geriatric-care.onrender.com/teste-basal',
+
     body
+
   ).subscribe({
 
     next: (res: any) => {
@@ -933,26 +1014,13 @@ finalizarTesteBasal() {
         res
       );
 
-      this.carregarTestesBasais();
-
       alert(
         `Teste finalizado!\nMédia: ${mediaBpm} BPM`
       );
 
-      this.testeBasal = {
+      this.resetarTesteBasal();
 
-        cd_tipo: '',
-        iniciando: false
-
-      };
-
-      this.tempoRestante = 300;
-
-      this.bpmColetados = [];
-
-      this.bpmAtual = 0;
-
-      this.modalTesteBasal = false;
+      this.carregarTestesBasais();
 
     },
 
@@ -979,41 +1047,100 @@ finalizarTesteBasal() {
 }
 
 
+private resetarTesteBasal() {
+
+  this.editarId = null;
+
+  this.editandoTesteBasal = false;
+
+  this.testeBasal = {
+
+    cd_tipo: '',
+
+    iniciando: false
+
+  };
+
+  this.tempoRestante = 300;
+
+  this.bpmColetados = [];
+
+  this.bpmAtual = 0;
+
+}
 async excluirTesteBasal(id: number) {
 
-  const confirmar = confirm(
-    'Deseja realmente excluir este teste?'
-  );
+  const alertConfirmacao =
+    await this.alertController.create({
 
-  if (!confirmar) {
-    return;
-  }
+      header: 'Excluir teste basal',
 
-  this.http.delete(
-    `https://geriatric-care.onrender.com/teste-basal/${id}`
-  )
-  .subscribe({
+      message:
+        'Tem certeza que deseja excluir este teste?',
 
-    next: () => {
+      buttons: [
 
-      this.carregarTestesBasais();
+        {
+          text: 'Não',
+          role: 'cancel'
+        },
 
-    },
+        {
+          text: 'Sim',
+          role: 'destructive',
 
-    error: (erro) => {
+          handler: () => {
 
-      console.log(
-        'ERRO AO EXCLUIR TESTE:',
-        erro
-      );
+            this.http.delete(
 
-      alert(
-        'Erro ao excluir teste basal.'
-      );
+              `https://geriatric-care.onrender.com/teste-basal/${id}`
 
-    }
+            ).subscribe({
 
-  });
+              next: () => {
+
+                this.carregarTestesBasais();
+
+                console.log(
+                  'TESTE BASAL EXCLUÍDO'
+                );
+
+              },
+
+              error: async (erro) => {
+
+                console.log(
+                  'ERRO AO EXCLUIR TESTE:',
+                  erro
+                );
+
+                const erroAlert =
+                  await this.alertController.create({
+
+                    header: 'Erro',
+
+                    message:
+                      'Erro ao excluir teste basal.',
+
+                    buttons: ['OK']
+
+                  });
+
+                await erroAlert.present();
+
+              }
+
+            });
+
+          }
+
+        }
+
+      ]
+
+    });
+
+  await alertConfirmacao.present();
 
 }
 
@@ -1044,5 +1171,66 @@ async presentAlertTesteBasal() {
   await alert.present();
 
 }
+
+async editarTesteBasal(teste: any) {
+
+  const alert = await this.alertController.create({
+
+    header: 'Editar teste basal',
+
+    message:
+      `Tem certeza que deseja refazer o teste de ${teste.tipo}?`,
+
+    buttons: [
+
+      {
+        text: 'Não',
+        role: 'cancel'
+      },
+
+      {
+        text: 'Sim',
+
+        handler: () => {
+
+          this.editarId = teste.cd_teste_basal;
+
+          this.testeBasal = {
+
+            cd_tipo: String(teste.cd_tipo),
+
+            iniciando: false
+
+          };
+
+          this.editandoTesteBasal = true;
+
+          this.bpmColetados = [];
+
+          this.bpmAtual = 0;
+
+          this.tempoRestante = 300;
+
+          this.selecionarTipoTeste();
+
+          console.log(
+            'EDITANDO TESTE:',
+            teste
+          );
+
+          this.iniciarTesteBasal();
+
+        }
+
+      }
+
+    ]
+
+  });
+
+  await alert.present();
+
+}
+
 }
 
