@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, timer, of } from 'rxjs';
-import { switchMap, catchError, tap } from 'rxjs/operators';
+import { exhaustMap, catchError, tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -13,9 +13,9 @@ export class BpmService {
 
   constructor(private http: HttpClient) {
 
-    timer(0, 3000)
+    timer(0, 500)
       .pipe(
-        switchMap(() =>
+        exhaustMap(() =>
           this.http.get<any>('https://geriatric-care.onrender.com').pipe(
             tap(data => console.log('SERVICE BPM RESPONSE:', data)),
             catchError(error => {
