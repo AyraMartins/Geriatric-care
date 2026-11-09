@@ -987,168 +987,62 @@ def listar_cuidadores_extra(cd_paciente):
 # ---------------------------------------------------
 # CADASTRAR CUIDADOR EXTRA
 # ---------------------------------------------------
-
 @app.route('/cuidadores-extra', methods=['POST'])
 def cadastrar_cuidador_extra():
 
-    db = None
-    cursor = None
-
     try:
-        # Recebe os dados enviados pelo Angular
-        data = request.get_json()
 
-        print("----------------------------------")
-        print("CADASTRO DE CUIDADOR EXTRA")
-        print("DADOS RECEBIDOS:", data)
+        data = request.json
 
-        if not data:
-            return jsonify({
-                "erro": "Nenhum dado foi enviado."
-            }), 400
-
-        # Recupera os campos
-        nome = data.get('nome')
-        email = data.get('email')
-        telefone = data.get('telefone')
-        cd_tipo = data.get('cd_tipo')
-        cd_paciente = data.get('cd_paciente')
-
-        print("NOME:", nome)
-        print("EMAIL:", email)
-        print("TELEFONE:", telefone)
-        print("CD_TIPO RECEBIDO:", repr(cd_tipo))
-        print("CD_PACIENTE RECEBIDO:", repr(cd_paciente))
-
-        # Verifica os campos obrigatórios
-        if not nome or not email or not telefone:
-            return jsonify({
-                "erro": "Nome, email e telefone são obrigatórios."
-            }), 400
-
-        if cd_tipo is None or cd_paciente is None:
-            return jsonify({
-                "erro": "Tipo de cuidador e paciente são obrigatórios."
-            }), 400
-
-        # Converte os códigos para números inteiros
-        try:
-            cd_tipo = int(cd_tipo)
-            cd_paciente = int(cd_paciente)
-        except (ValueError, TypeError):
-            return jsonify({
-                "erro": "O código do tipo ou do paciente é inválido."
-            }), 400
-
-        # Conecta ao banco
         db = conectar()
+
         cursor = db.cursor()
 
-        # Verifica se o tipo de cuidador existe
-        cursor.execute("""
-            SELECT cd_tipo, nm_tipo
-            FROM tipo_cuidador
-            WHERE cd_tipo = %s
-        """, (cd_tipo,))
-
-        tipo = cursor.fetchone()
-
-        if tipo is None:
-            cursor.execute("""
-                SELECT cd_tipo, nm_tipo
-                FROM tipo_cuidador
-                ORDER BY cd_tipo
-            """)
-
-            tipos_disponiveis = cursor.fetchall()
-
-            print("TIPO NÃO ENCONTRADO:", cd_tipo)
-            print("TIPOS DISPONÍVEIS:", tipos_disponiveis)
-
-            return jsonify({
-                "erro": "O tipo de cuidador informado não existe.",
-                "cd_tipo_recebido": cd_tipo,
-                "tipos_disponiveis": [
-                    {
-                        "cd_tipo": t[0],
-                        "nm_tipo": t[1]
-                    }
-                    for t in tipos_disponiveis
-                ]
-            }), 400
-
-        # Verifica se o paciente existe
-        cursor.execute("""
-            SELECT cd_paciente
-            FROM paciente
-            WHERE cd_paciente = %s
-        """, (cd_paciente,))
-
-        paciente = cursor.fetchone()
-
-        if paciente is None:
-            print("PACIENTE NÃO ENCONTRADO:", cd_paciente)
-
-            return jsonify({
-                "erro": "O paciente informado não existe.",
-                "cd_paciente_recebido": cd_paciente
-            }), 400
-
-        # Cadastra o cuidador extra
         sql = """
-            INSERT INTO cuidador_extra
-            (
-                nm_cuidador,
-                email_cuidador,
-                tel_cuidador,
-                cd_tipo,
-                cd_paciente
-            )
-            VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO cuidador_extra
+        (
+            nm_cuidador,
+            email_cuidador,
+            tel_cuidador,
+            cd_tipo,
+            cd_paciente
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        )
         """
 
         valores = (
-            nome,
-            email,
-            telefone,
-            cd_tipo,
-            cd_paciente
+            data['nome'],
+            data['email'],
+            data['telefone'],
+            data['cd_tipo'],
+            data['cd_paciente']
         )
 
         cursor.execute(sql, valores)
 
-        # Salva no banco
         db.commit()
 
-        print("CUIDADOR EXTRA CADASTRADO COM SUCESSO!")
-        print("----------------------------------")
+        cursor.close()
+        db.close()
 
         return jsonify({
-            "ok": True,
-            "mensagem": "Cuidador extra cadastrado com sucesso!"
-        }), 201
+            "ok": True
+        })
 
     except Exception as e:
 
-        if db:
-            db.rollback()
-
-        print("----------------------------------")
-        print("ERRO AO CADASTRAR CUIDADOR EXTRA:")
-        print(str(e))
-        print("----------------------------------")
+        print("ERRO CADASTRAR EXTRA:", e)
 
         return jsonify({
             "erro": str(e)
         }), 500
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if db:
-            db.close()
 
 
 # ---------------------------------------------------
@@ -1242,20 +1136,73 @@ def excluir_cuidador_extra(id):
 # ---------------------------------------------------
 # ENVIAR PDF PARA MÉDICOS
 # ---------------------------------------------------
+
+# ---------------------------------------------------
+# ENVIAR PDF PARA MÉDICOS
+# ---------------------------------------------------
 @app.route('/enviar-medicos/<int:cd_paciente>', methods=['POST'])
 def enviar_medicos(cd_paciente):
 
+    db = None
+    cursor = None
+
     try:
 
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         pdf_base64 = data.get('pdf_base64')
+
+        # -----------------------------------------
+        # VALIDAR PDF
+        # -----------------------------------------
 
         if not pdf_base64:
 
             return jsonify({
+                "ok": False,
                 "erro": "PDF não enviado"
             }), 400
+
+        # Remover cabeçalho caso venha como Data URL
+        if ',' in pdf_base64:
+
+            pdf_base64 = pdf_base64.split(',', 1)[1]
+
+        try:
+
+            pdf_bytes = base64.b64decode(
+                pdf_base64,
+                validate=True
+            )
+
+        except Exception:
+
+            return jsonify({
+                "ok": False,
+                "erro": "Arquivo PDF inválido"
+            }), 400
+
+        if not pdf_bytes.startswith(b'%PDF'):
+
+            return jsonify({
+                "ok": False,
+                "erro": "O arquivo enviado não é um PDF válido"
+            }), 400
+
+        # -----------------------------------------
+        # VERIFICAR CONFIGURAÇÃO DO EMAIL
+        # -----------------------------------------
+
+        if not os.getenv("RESEND_API_KEY"):
+
+            return jsonify({
+                "ok": False,
+                "erro": "Serviço de email não configurado"
+            }), 500
+
+        # -----------------------------------------
+        # CONECTAR AO BANCO
+        # -----------------------------------------
 
         db = conectar()
 
@@ -1264,98 +1211,185 @@ def enviar_medicos(cd_paciente):
         # -----------------------------------------
         # BUSCAR MÉDICOS
         # -----------------------------------------
+
         sql_medicos = """
         SELECT
             nm_cuidador,
             email_cuidador
         FROM cuidador_extra
         WHERE cd_paciente = %s
-        AND cd_tipo = 4
+        AND cd_tipo = 3
+        AND email_cuidador IS NOT NULL
+        AND email_cuidador <> ''
         """
 
-        cursor.execute(sql_medicos, (cd_paciente,))
+        cursor.execute(
+            sql_medicos,
+            (cd_paciente,)
+        )
 
         medicos = cursor.fetchall()
 
+        # -----------------------------------------
+        # VERIFICAR MÉDICOS
+        # -----------------------------------------
+
         if not medicos:
 
-            cursor.close()
-            db.close()
-
             return jsonify({
-                "erro": "Nenhum médico encontrado"
+                "ok": False,
+                "erro": "Nenhum médico com email cadastrado foi encontrado para este paciente.",
+                "cd_paciente": cd_paciente
             }), 404
 
         # -----------------------------------------
         # BUSCAR PACIENTE
         # -----------------------------------------
+
         sql_paciente = """
-        SELECT
-            p.nm_paciente
-        FROM paciente p
-        WHERE p.cd_paciente = %s
+        SELECT nm_paciente
+        FROM paciente
+        WHERE cd_paciente = %s
         """
 
-        cursor.execute(sql_paciente, (cd_paciente,))
+        cursor.execute(
+            sql_paciente,
+            (cd_paciente,)
+        )
 
         paciente = cursor.fetchone()
 
+        if not paciente:
+
+            return jsonify({
+                "ok": False,
+                "erro": "Paciente não encontrado"
+            }), 404
+
+        nm_paciente = paciente['nm_paciente']
+
+        # -----------------------------------------
+        # FECHAR BANCO
+        # -----------------------------------------
+
         cursor.close()
+        cursor = None
+
         db.close()
-
-        nm_paciente = (
-            paciente['nm_paciente']
-            if paciente else
-            'Paciente'
-        )
-
-        enviados = []
+        db = None
 
         # -----------------------------------------
         # ENVIAR EMAILS
         # -----------------------------------------
+
+        enviados = []
+        falhas = []
+
         for medico in medicos:
 
-            resend.Emails.send({
+            try:
 
-                "from": "onboarding@resend.dev",
+                resposta = resend.Emails.send({
 
-                "to": medico['email_cuidador'],
+                    "from": "onboarding@resend.dev",
 
-                "subject": f"Relatório BPM - {nm_paciente}",
+                    "to": medico['email_cuidador'],
 
-                "html": f"""
-                <h2>Relatório BPM</h2>
+                    "subject": f"Relatório BPM - {nm_paciente}",
 
-                <p>
-                    O relatório em PDF segue em anexo.
-                </p>
-                """,
+                    "html": f"""
+                    <h2>Relatório de Batimentos Cardíacos</h2>
 
-                "attachments": [
-                    {
-                        "filename": "relatorio-bpm.pdf",
-                        "content": pdf_base64
-                    }
-                ]
-            })
+                    <p>Olá, {medico['nm_cuidador']}!</p>
 
-            enviados.append(
-                medico['email_cuidador']
-            )
+                    <p>
+                        Segue em anexo o relatório de batimentos
+                        cardíacos do paciente
+                        <strong>{nm_paciente}</strong>.
+                    </p>
+
+                    <p>
+                        Atenciosamente,<br>
+                        Geriatric Care
+                    </p>
+                    """,
+
+                    "attachments": [
+                        {
+                            "filename": "relatorio-bpm.pdf",
+                            "content": base64.b64encode(
+                                pdf_bytes
+                            ).decode('utf-8')
+                        }
+                    ]
+
+                })
+
+                enviados.append({
+                    "nome": medico['nm_cuidador'],
+                    "email": medico['email_cuidador']
+                })
+
+            except Exception as erro_email:
+
+                print(
+                    "ERRO AO ENVIAR PARA:",
+                    medico['email_cuidador'],
+                    erro_email
+                )
+
+                falhas.append({
+                    "email": medico['email_cuidador'],
+                    "erro": str(erro_email)
+                })
+
+        # -----------------------------------------
+        # RESULTADO
+        # -----------------------------------------
+
+        if not enviados:
+
+            return jsonify({
+                "ok": False,
+                "erro": "Não foi possível enviar o relatório para nenhum médico.",
+                "falhas": falhas
+            }), 500
 
         return jsonify({
+
             "ok": True,
-            "emails_enviados": enviados
-        })
+
+            "msg": "Relatório enviado com sucesso",
+
+            "paciente": nm_paciente,
+
+            "total_enviados": len(enviados),
+
+            "emails_enviados": enviados,
+
+            "falhas": falhas
+
+        }), 200
 
     except Exception as e:
 
         print("ERRO ENVIAR MÉDICOS:", e)
 
         return jsonify({
+            "ok": False,
             "erro": str(e)
         }), 500
+
+    finally:
+
+        if cursor:
+
+            cursor.close()
+
+        if db and db.is_connected():
+
+            db.close()
+
 # ---------------------------------------------------
 # ENVIAR AJUDA
 # ---------------------------------------------------
