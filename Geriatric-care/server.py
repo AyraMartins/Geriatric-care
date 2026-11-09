@@ -987,62 +987,168 @@ def listar_cuidadores_extra(cd_paciente):
 # ---------------------------------------------------
 # CADASTRAR CUIDADOR EXTRA
 # ---------------------------------------------------
+
 @app.route('/cuidadores-extra', methods=['POST'])
 def cadastrar_cuidador_extra():
 
+    db = None
+    cursor = None
+
     try:
+        # Recebe os dados enviados pelo Angular
+        data = request.get_json()
 
-        data = request.json
+        print("----------------------------------")
+        print("CADASTRO DE CUIDADOR EXTRA")
+        print("DADOS RECEBIDOS:", data)
 
+        if not data:
+            return jsonify({
+                "erro": "Nenhum dado foi enviado."
+            }), 400
+
+        # Recupera os campos
+        nome = data.get('nome')
+        email = data.get('email')
+        telefone = data.get('telefone')
+        cd_tipo = data.get('cd_tipo')
+        cd_paciente = data.get('cd_paciente')
+
+        print("NOME:", nome)
+        print("EMAIL:", email)
+        print("TELEFONE:", telefone)
+        print("CD_TIPO RECEBIDO:", repr(cd_tipo))
+        print("CD_PACIENTE RECEBIDO:", repr(cd_paciente))
+
+        # Verifica os campos obrigatórios
+        if not nome or not email or not telefone:
+            return jsonify({
+                "erro": "Nome, email e telefone são obrigatórios."
+            }), 400
+
+        if cd_tipo is None or cd_paciente is None:
+            return jsonify({
+                "erro": "Tipo de cuidador e paciente são obrigatórios."
+            }), 400
+
+        # Converte os códigos para números inteiros
+        try:
+            cd_tipo = int(cd_tipo)
+            cd_paciente = int(cd_paciente)
+        except (ValueError, TypeError):
+            return jsonify({
+                "erro": "O código do tipo ou do paciente é inválido."
+            }), 400
+
+        # Conecta ao banco
         db = conectar()
-
         cursor = db.cursor()
 
+        # Verifica se o tipo de cuidador existe
+        cursor.execute("""
+            SELECT cd_tipo, nm_tipo
+            FROM tipo_cuidador
+            WHERE cd_tipo = %s
+        """, (cd_tipo,))
+
+        tipo = cursor.fetchone()
+
+        if tipo is None:
+            cursor.execute("""
+                SELECT cd_tipo, nm_tipo
+                FROM tipo_cuidador
+                ORDER BY cd_tipo
+            """)
+
+            tipos_disponiveis = cursor.fetchall()
+
+            print("TIPO NÃO ENCONTRADO:", cd_tipo)
+            print("TIPOS DISPONÍVEIS:", tipos_disponiveis)
+
+            return jsonify({
+                "erro": "O tipo de cuidador informado não existe.",
+                "cd_tipo_recebido": cd_tipo,
+                "tipos_disponiveis": [
+                    {
+                        "cd_tipo": t[0],
+                        "nm_tipo": t[1]
+                    }
+                    for t in tipos_disponiveis
+                ]
+            }), 400
+
+        # Verifica se o paciente existe
+        cursor.execute("""
+            SELECT cd_paciente
+            FROM paciente
+            WHERE cd_paciente = %s
+        """, (cd_paciente,))
+
+        paciente = cursor.fetchone()
+
+        if paciente is None:
+            print("PACIENTE NÃO ENCONTRADO:", cd_paciente)
+
+            return jsonify({
+                "erro": "O paciente informado não existe.",
+                "cd_paciente_recebido": cd_paciente
+            }), 400
+
+        # Cadastra o cuidador extra
         sql = """
-        INSERT INTO cuidador_extra
-        (
-            nm_cuidador,
-            email_cuidador,
-            tel_cuidador,
-            cd_tipo,
-            cd_paciente
-        )
-        VALUES
-        (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
-        )
+            INSERT INTO cuidador_extra
+            (
+                nm_cuidador,
+                email_cuidador,
+                tel_cuidador,
+                cd_tipo,
+                cd_paciente
+            )
+            VALUES (%s, %s, %s, %s, %s)
         """
 
         valores = (
-            data['nome'],
-            data['email'],
-            data['telefone'],
-            data['cd_tipo'],
-            data['cd_paciente']
+            nome,
+            email,
+            telefone,
+            cd_tipo,
+            cd_paciente
         )
 
         cursor.execute(sql, valores)
 
+        # Salva no banco
         db.commit()
 
-        cursor.close()
-        db.close()
+        print("CUIDADOR EXTRA CADASTRADO COM SUCESSO!")
+        print("----------------------------------")
 
         return jsonify({
-            "ok": True
-        })
+            "ok": True,
+            "mensagem": "Cuidador extra cadastrado com sucesso!"
+        }), 201
 
     except Exception as e:
 
-        print("ERRO CADASTRAR EXTRA:", e)
+        if db:
+            db.rollback()
+
+        print("----------------------------------")
+        print("ERRO AO CADASTRAR CUIDADOR EXTRA:")
+        print(str(e))
+        print("----------------------------------")
 
         return jsonify({
             "erro": str(e)
         }), 500
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if db:
+            db.close()
 
 
 # ---------------------------------------------------
