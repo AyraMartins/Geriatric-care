@@ -34,7 +34,14 @@ def conectar():
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME"),
-        port=3306
+        port=int(os.getenv("DB_PORT", "3306")),
+
+        ssl_ca=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "ca.pem"
+        ),
+        ssl_verify_cert=True,
+        ssl_verify_identity=True
     )
 # ---------------------------------------------------
 # GERAR RESUMO DIÁRIO
@@ -1164,7 +1171,7 @@ def enviar_medicos(cd_paciente):
             email_cuidador
         FROM cuidador_extra
         WHERE cd_paciente = %s
-        AND cd_tipo = 4
+        AND cd_tipo = 3
         """
 
         cursor.execute(sql_medicos, (cd_paciente,))
