@@ -858,18 +858,18 @@ def resumo_pdf(cd_paciente):
         cursor.execute(sql, (cd_paciente,))
         resumo = cursor.fetchall()
 
-        # BUSCAR ÚLTIMO TESTE BASAL
+       
+        # BUSCAR TODOS OS TESTES BASAIS DO PACIENTE
         cursor.execute("""
-            SELECT
-                cd_tipo,
-                media_bpm
-            FROM teste_basal
-            WHERE cd_paciente = %s
-            ORDER BY cd_teste_basal DESC
-            LIMIT 1
+        SELECT
+        cd_tipo,
+        media_bpm
+        FROM teste_basal
+        WHERE cd_paciente = %s
+        ORDER BY cd_tipo ASC
         """, (cd_paciente,))
 
-        teste_basal = cursor.fetchone()
+        testes_basais = cursor.fetchall()
 
         cursor.close()
         db.close()
@@ -878,7 +878,7 @@ def resumo_pdf(cd_paciente):
             "paciente": nm_paciente,
             "cuidador": nm_cuidador,
             "dados": resumo,
-            "teste_basal": teste_basal
+            "testes_basais": testes_basais
         })
 
     except Exception as e:
