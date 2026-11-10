@@ -36,12 +36,7 @@ def conectar():
         database=os.getenv("DB_NAME"),
         port=int(os.getenv("DB_PORT", "3306")),
 
-        ssl_ca=os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "ca.pem"
-        ),
-        ssl_verify_cert=True,
-        ssl_verify_identity=True
+       
     )
 # ---------------------------------------------------
 # GERAR RESUMO DIÁRIO
