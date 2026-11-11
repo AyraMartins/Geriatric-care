@@ -91,9 +91,10 @@
  <ion-button
   expand="block"
   color="danger"
+  [disabled]="enviandoEmail"
   (click)="enviarMedicos()">
 
-  Enviar para o médico
+  {{ enviandoEmail ? 'Enviando relatório...' : 'Enviar para o médico' }}
 
 </ion-button>
 

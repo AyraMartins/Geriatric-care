@@ -12,6 +12,7 @@ from reportlab.graphics.widgets.markers import makeMarker
 from decimal import Decimal
 import base64
 import os
+from html import escape as escape_html
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
@@ -860,18 +861,17 @@ def resumo_pdf(cd_paciente):
         cursor.execute(sql, (cd_paciente,))
         resumo = cursor.fetchall()
 
-        # BUSCAR ÚLTIMO TESTE BASAL
+        # BUSCAR TODOS OS TESTES BASAIS NA ORDEM DOS TIPOS
         cursor.execute("""
             SELECT
                 cd_tipo,
                 media_bpm
             FROM teste_basal
             WHERE cd_paciente = %s
-            ORDER BY cd_teste_basal DESC
-            LIMIT 1
+            ORDER BY cd_tipo ASC, cd_teste_basal ASC
         """, (cd_paciente,))
 
-        teste_basal = cursor.fetchone()
+        testes_basais = cursor.fetchall()
 
         cursor.close()
         db.close()
@@ -880,7 +880,7 @@ def resumo_pdf(cd_paciente):
             "paciente": nm_paciente,
             "cuidador": nm_cuidador,
             "dados": resumo,
-            "teste_basal": teste_basal
+            "testes_basais": testes_basais
         })
 
     except Exception as e:
@@ -1143,107 +1143,147 @@ def enviar_medicos(cd_paciente):
 
     try:
 
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         pdf_base64 = data.get('pdf_base64')
 
-        if not pdf_base64:
-
+        if not isinstance(pdf_base64, str) or not pdf_base64:
             return jsonify({
                 "erro": "PDF não enviado"
             }), 400
 
+        try:
+            pdf_bytes = base64.b64decode(pdf_base64, validate=True)
+        except (ValueError, base64.binascii.Error):
+            return jsonify({
+                "erro": "Arquivo PDF inválido"
+            }), 400
+
+        if not pdf_bytes.startswith(b"%PDF-"):
+            return jsonify({
+                "erro": "O arquivo enviado não é um PDF válido"
+            }), 400
+
+        api_key = os.getenv("RESEND_API_KEY")
+        if not api_key:
+            return jsonify({
+                "erro": "Serviço de e-mail não configurado no servidor"
+            }), 503
+
+        resend.api_key = api_key
+        remetente = os.getenv(
+            "RESEND_FROM_EMAIL",
+            "onboarding@resend.dev"
+        )
+
         db = conectar()
-
         cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT nm_cuidador, email_cuidador
+                FROM cuidador_extra
+                WHERE cd_paciente = %s
+                AND cd_tipo = 3
+            """, (cd_paciente,))
+            medicos = cursor.fetchall()
 
-        # -----------------------------------------
-        # BUSCAR MÉDICOS
-        # -----------------------------------------
-        sql_medicos = """
-        SELECT
-            nm_cuidador,
-            email_cuidador
-        FROM cuidador_extra
-        WHERE cd_paciente = %s
-        AND cd_tipo = 3
-        """
+            if not medicos:
+                return jsonify({
+                    "erro": "Nenhum médico encontrado para este paciente"
+                }), 404
 
-        cursor.execute(sql_medicos, (cd_paciente,))
-
-        medicos = cursor.fetchall()
-
-        if not medicos:
-
+            cursor.execute("""
+                SELECT nm_paciente
+                FROM paciente
+                WHERE cd_paciente = %s
+            """, (cd_paciente,))
+            paciente = cursor.fetchone()
+        finally:
             cursor.close()
             db.close()
 
-            return jsonify({
-                "erro": "Nenhum médico encontrado"
-            }), 404
-
-        # -----------------------------------------
-        # BUSCAR PACIENTE
-        # -----------------------------------------
-        sql_paciente = """
-        SELECT
-            p.nm_paciente
-        FROM paciente p
-        WHERE p.cd_paciente = %s
-        """
-
-        cursor.execute(sql_paciente, (cd_paciente,))
-
-        paciente = cursor.fetchone()
-
-        cursor.close()
-        db.close()
-
-        nm_paciente = (
-            paciente['nm_paciente']
-            if paciente else
-            'Paciente'
+        nm_paciente = str(
+            (paciente or {}).get('nm_paciente') or 'Paciente'
         )
-
+        paciente_html = escape_html(nm_paciente)
         enviados = []
+        falhas = []
 
-        # -----------------------------------------
-        # ENVIAR EMAILS
-        # -----------------------------------------
         for medico in medicos:
+            email = (medico.get('email_cuidador') or '').strip()
+            nome_medico = (medico.get('nm_cuidador') or '').strip()
 
-            resend.Emails.send({
+            if not email or '@' not in email or ' ' in email:
+                falhas.append({
+                    "medico": nome_medico or "Médico",
+                    "erro": "E-mail ausente ou inválido"
+                })
+                continue
 
-                "from": "onboarding@resend.dev",
+            nome_html = escape_html(nome_medico or "Médico(a)")
 
-                "to": medico['email_cuidador'],
-
-                "subject": f"Relatório BPM - {nm_paciente}",
-
-                "html": f"""
-                <h2>Relatório BPM</h2>
-
-                <p>
-                    O relatório em PDF segue em anexo.
-                </p>
-                """,
-
-                "attachments": [
-                    {
-                        "filename": "relatorio-bpm.pdf",
+            try:
+                resposta = resend.Emails.send({
+                    "from": remetente,
+                    "to": email,
+                    "subject": f"Relatório BPM - {nm_paciente}",
+                    "text": (
+                        f"Olá, {nome_medico or 'médico(a)'}.\n\n"
+                        f"Segue em anexo o relatório BPM de {nm_paciente}.\n"
+                        "Esta mensagem contém informações de saúde; "
+                        "mantenha o documento protegido."
+                    ),
+                    "html": f"""
+                    <div style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto">
+                      <div style="background:#ad0d0d;padding:18px 24px;color:#fff">
+                        <h2 style="margin:0">Geriatric-care</h2>
+                      </div>
+                      <div style="padding:24px;border:1px solid #eee">
+                        <p>Olá, {nome_html}.</p>
+                        <p>O relatório BPM de <strong>{paciente_html}</strong>
+                        está anexado a esta mensagem.</p>
+                        <p style="font-size:13px;color:#666">
+                          Por conter informações de saúde, mantenha o documento protegido.
+                        </p>
+                      </div>
+                    </div>
+                    """,
+                    "attachments": [{
+                        "filename": f"relatorio-bpm-{cd_paciente}.pdf",
                         "content": pdf_base64
-                    }
-                ]
-            })
+                    }]
+                })
 
-            enviados.append(
-                medico['email_cuidador']
-            )
+                enviados.append({
+                    "email": email,
+                    "id": resposta.get("id") if isinstance(resposta, dict) else None
+                })
+            except Exception as erro_envio:
+                print(
+                    f"ERRO RESEND para {email}: "
+                    f"{type(erro_envio).__name__}: {erro_envio}"
+                )
+                falhas.append({
+                    "email": email,
+                    "erro": str(erro_envio)
+                })
+
+        if falhas and enviados:
+            status = 207
+        elif falhas:
+            status = 502
+        else:
+            status = 200
 
         return jsonify({
-            "ok": True,
-            "emails_enviados": enviados
-        })
+            "ok": not falhas,
+            "emails_enviados": enviados,
+            "falhas": falhas,
+            "mensagem": (
+                "Envio aceito pelo provedor."
+                if enviados else "Nenhum e-mail foi aceito pelo provedor."
+            )
+        }), status
 
     except Exception as e:
 
