@@ -211,19 +211,19 @@ ngOnInit() {
     // -----------------------------------------
 
     if (this.testeBasal.iniciando && bpm > 0) {
-
       this.bpmColetados.push(bpm);
-
+      
       console.log(
-        'BPM COLETADO:',
+        'BPM COLETADO NO TESTE BASAL:',
         bpm
       );
-
       console.log(
         'TOTAL COLETADOS:',
         this.bpmColetados.length
+  
       );
 
+  
     }
 
   });
@@ -319,14 +319,19 @@ toggleInstrucoes() {
     }
 
   }
-
+  
   fecharModais() {
-
+  
     this.modalConta = false;
     this.modalCuidadores = false;
     this.modalTesteBasal = false;
     this.modalAjuda = false;
 
+    if (!this.testeBasal.iniciando) {    
+      this.testeBasal.cd_tipo = '';   
+      this.mostrarInstrucoes = false;    
+      this.instrucoesAbertas = false;
+    }
 
   }
 
