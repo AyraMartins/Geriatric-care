@@ -108,6 +108,11 @@ export class CadastroPacientePage implements OnInit {
   // SALVAR PACIENTE
   salvarPaciente() {
 
+    if (!Number.isInteger(this.cdCuidador) || this.cdCuidador <= 0) {
+      alert('Cuidador não identificado. Faça login novamente.');
+      return;
+    }
+
     const dados = {
 
       nome: this.nome,
@@ -128,12 +133,41 @@ export class CadastroPacientePage implements OnInit {
 
         console.log('Paciente salvo com sucesso', res);
 
-        if (res.cd_paciente) {
-          localStorage.setItem('cd_paciente', res.cd_paciente.toString());
+        if (!res?.cd_paciente) {
+          alert('O servidor não retornou o código do paciente.');
+          return;
         }
 
-        // REDIRECIONA PARA HOME
-        this.router.navigate(['/home']);
+        this.http.post<any>(
+          'https://geriatric-care.onrender.com/set-cuidador',
+          {
+            cd_cuidador: this.cdCuidador,
+            cd_paciente: res.cd_paciente
+          }
+        ).subscribe({
+
+          next: (configuracao) => {
+            if (!configuracao?.ok) {
+              alert('Não foi possível configurar o paciente ativo.');
+              return;
+            }
+
+            localStorage.setItem(
+              'cd_paciente',
+              String(res.cd_paciente)
+            );
+            localStorage.setItem('cuidadorLogado', 'true');
+
+            this.router.navigate(['/home']);
+          },
+
+          error: () => {
+            alert(
+              'Paciente cadastrado, mas não foi possível configurar o sensor. ' +
+              'Entre novamente no aplicativo para tentar ativar o paciente.'
+            );
+          }
+        });
       },
 
       error: (err) => {
