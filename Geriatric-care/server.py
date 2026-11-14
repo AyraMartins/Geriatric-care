@@ -234,6 +234,11 @@ def salvar_resumo_semanal(cd_paciente):
 dados = []
 
 # ---------------------------------------------------
+# CUIDADOR ATUAL
+# ---------------------------------------------------
+cuidador_atual = None
+
+# ---------------------------------------------------
 # HOME
 # ---------------------------------------------------
 @app.route('/')
@@ -243,12 +248,9 @@ def home():
     cursor = db.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT b.btm_batimentos
-        FROM configuracao_esp32 c
-        LEFT JOIN batimentos b
-            ON b.cd_paciente = c.cd_paciente
-        WHERE c.id = 1
-        ORDER BY b.dt_hr_batimentos DESC
+        SELECT btm_batimentos
+        FROM batimentos
+        ORDER BY dt_hr_batimentos DESC
         LIMIT 1
     """)
 
@@ -258,113 +260,23 @@ def home():
     db.close()
 
     return jsonify({
-        "bpm": ultimo['btm_batimentos'] if ultimo else None
+        "bpm": ultimo['btm_batimentos'] if ultimo else 0
     })
 
 # ---------------------------------------------------
-# CONFIGURAR CUIDADOR E PACIENTE ATIVOS
+# DEFINIR CUIDADOR ATUAL
 # ---------------------------------------------------
-@app.route('/set-cuidador', methods=['POST'])
-@app.route('/set-cuidador/<int:cd>', methods=['GET'])
-def set_cuidador(cd=None):
+@app.route('/set-cuidador/<int:cd>')
+def set_cuidador(cd):
 
-    db = None
-    cursor = None
+    global cuidador_atual
 
-    try:
+    cuidador_atual = cd
 
-        db = conectar()
-        cursor = db.cursor()
-
-        if request.method == 'POST':
-            data = request.get_json(silent=True) or {}
-
-            try:
-                cd_cuidador = int(data.get('cd_cuidador'))
-                cd_paciente = int(data.get('cd_paciente'))
-            except (TypeError, ValueError):
-                return jsonify({
-                    "erro": "cd_cuidador e cd_paciente são obrigatórios"
-                }), 400
-
-            if cd_cuidador <= 0 or cd_paciente <= 0:
-                return jsonify({
-                    "erro": "Identificadores inválidos"
-                }), 400
-        else:
-            cd_cuidador = cd
-            cursor.execute("""
-                SELECT cd_paciente
-                FROM paciente
-                WHERE cd_cuidador = %s
-                ORDER BY cd_paciente
-                LIMIT 2
-            """, (cd_cuidador,))
-
-            pacientes = cursor.fetchall()
-
-            if not pacientes:
-                return jsonify({
-                    "erro": "Paciente não encontrado para o cuidador"
-                }), 404
-
-            if len(pacientes) > 1:
-                return jsonify({
-                    "erro": "Informe o paciente ao definir o cuidador ativo"
-                }), 409
-
-            cd_paciente = pacientes[0][0]
-
-        cursor.execute("""
-            SELECT cd_paciente
-            FROM paciente
-            WHERE cd_paciente = %s
-              AND cd_cuidador = %s
-            FOR UPDATE
-        """, (cd_paciente, cd_cuidador))
-
-        if not cursor.fetchone():
-            db.rollback()
-            return jsonify({
-                "erro": "O paciente não pertence ao cuidador informado"
-            }), 404
-
-        cursor.execute("""
-            INSERT INTO configuracao_esp32
-                (id, cd_cuidador, cd_paciente)
-            VALUES
-                (1, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                cd_cuidador = VALUES(cd_cuidador),
-                cd_paciente = VALUES(cd_paciente)
-        """, (cd_cuidador, cd_paciente))
-
-        db.commit()
-
-        return jsonify({
-            "ok": True,
-            "cd_cuidador": cd_cuidador,
-            "cd_paciente": cd_paciente
-        })
-
-    except Exception as e:
-
-        if db:
-            db.rollback()
-
-        print("ERRO AO DEFINIR CUIDADOR ATIVO:", e)
-
-        return jsonify({
-            "erro": str(e)
-        }), 500
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if db:
-            db.close()
+    return jsonify({
+        "ok": True,
+        "cd_cuidador": cuidador_atual
+    })
 
 # ---------------------------------------------------
 # RECEBER BPM ESP32
@@ -372,14 +284,14 @@ def set_cuidador(cd=None):
 @app.route('/bpm')
 def bpm():
 
-    db = None
-    cursor = None
-
     try:
+
+        global cuidador_atual
 
         valor = request.args.get('valor', '').strip()
 
         print("RAW RECEBIDO:", valor)
+        print("CUIDADOR ATUAL:", cuidador_atual)
 
         if not valor:
             return jsonify({"erro": "valor vazio"}), 400
@@ -387,29 +299,35 @@ def bpm():
         try:
             valor = int(valor)
 
-        except ValueError:
+        except:
             return jsonify({"erro": "valor inválido"}), 400
 
         db = conectar()
 
         cursor = db.cursor()
 
-        cursor.execute("""
-            SELECT p.cd_paciente
-            FROM configuracao_esp32 c
-            INNER JOIN paciente p
-                ON p.cd_paciente = c.cd_paciente
-               AND p.cd_cuidador = c.cd_cuidador
-            WHERE c.id = 1
-            LIMIT 1
-        """)
+        # -----------------------------------------
+        # BUSCAR PACIENTE DO CUIDADOR
+        # -----------------------------------------
+        sql_paciente = """
+        SELECT cd_paciente
+        FROM paciente
+        WHERE cd_cuidador = %s
+        LIMIT 1
+        """
+
+        cursor.execute(sql_paciente, (cuidador_atual,))
 
         paciente = cursor.fetchone()
 
         if not paciente:
+
+            cursor.close()
+            db.close()
+
             return jsonify({
-                "erro": "Cuidador e paciente ativos não configurados"
-            }), 503
+                "erro": "Paciente não encontrado"
+            }), 404
 
         cd_paciente = paciente[0]
 
@@ -448,6 +366,9 @@ def bpm():
         salvar_resumo_horario(cd_paciente)
         salvar_resumo_semanal(cd_paciente)
 
+        cursor.close()
+        db.close()
+
         return jsonify({
             "ok": True,
             "bpm": valor,
@@ -456,22 +377,11 @@ def bpm():
 
     except Exception as e:
 
-        if db:
-            db.rollback()
-
         print("ERRO BPM:", e)
 
         return jsonify({
             "erro": str(e)
         }), 500
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if db:
-            db.close()
 
 # ---------------------------------------------------
 # CADASTRO CUIDADOR
@@ -480,6 +390,8 @@ def bpm():
 def criar_cuidador():
 
     try:
+
+        global cuidador_atual
 
         data = request.json
 
@@ -520,6 +432,13 @@ def criar_cuidador():
 
         cd_cuidador = cursor.lastrowid
 
+        # -----------------------------------------
+        # LOGIN AUTOMÁTICO
+        # -----------------------------------------
+        cuidador_atual = cd_cuidador
+
+        print("CUIDADOR LOGADO AUTOMATICAMENTE:", cuidador_atual)
+
         cursor.close()
         db.close()
 
@@ -544,6 +463,8 @@ def criar_cuidador():
 def validar_login():
 
     try:
+
+        global cuidador_atual
 
         data = request.json
 
@@ -574,6 +495,10 @@ def validar_login():
         db.close()
 
         if cuidador:
+
+            cuidador_atual = cuidador['cd_cuidador']
+
+            print("CUIDADOR LOGADO:", cuidador_atual)
 
             return jsonify({
                 "valido": True,
