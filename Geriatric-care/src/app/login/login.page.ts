@@ -97,12 +97,24 @@ export class LoginPage {
     };
 
     this.http.post<any>('https://geriatric-care.onrender.com/cuidador', dados)
-      .subscribe(res => {
+      .subscribe({
+        next: (res) => {
+          if (!res?.cd_cuidador) {
+            this.showAlert('Erro', 'Não foi possível cadastrar o cuidador');
+            return;
+          }
 
-        localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
-        localStorage.setItem('email', this.email);
+          localStorage.removeItem('cd_paciente');
+          localStorage.removeItem('cuidadorLogado');
+          localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
+          localStorage.setItem('email', this.email);
 
-        this.router.navigate(['/cadastro-paciente']);
+          this.router.navigate(['/cadastro-paciente']);
+        },
+
+        error: () => {
+          this.showAlert('Erro', 'Não foi possível cadastrar o cuidador');
+        }
       });
   }
 
@@ -134,10 +146,6 @@ export class LoginPage {
             return;
           }
 
-          localStorage.setItem('cuidadorLogado', 'true');
-          localStorage.setItem('email', data.email);
-          localStorage.setItem('cd_cuidador', String(res.cd_cuidador));
-
           this.http.get<any>(
             `https://geriatric-care.onrender.com/paciente-cuidador/${res.cd_cuidador}`
           ).subscribe({
@@ -149,13 +157,45 @@ export class LoginPage {
                 return;
               }
 
-              localStorage.setItem(
-                'cd_paciente',
-                String(paciente.cd_paciente)
-              );
+              this.http.post<any>(
+                'https://geriatric-care.onrender.com/set-cuidador',
+                {
+                  cd_cuidador: res.cd_cuidador,
+                  cd_paciente: paciente.cd_paciente
+                }
+              ).subscribe({
 
-              this.fecharLogin();
-              this.router.navigate(['/home']);
+                next: (configuracao) => {
+                  if (!configuracao?.ok) {
+                    this.showAlert(
+                      'Erro',
+                      'Não foi possível configurar o paciente ativo'
+                    );
+                    return;
+                  }
+
+                  localStorage.setItem('cuidadorLogado', 'true');
+                  localStorage.setItem('email', data.email);
+                  localStorage.setItem(
+                    'cd_cuidador',
+                    String(res.cd_cuidador)
+                  );
+                  localStorage.setItem(
+                    'cd_paciente',
+                    String(paciente.cd_paciente)
+                  );
+
+                  this.fecharLogin();
+                  this.router.navigate(['/home']);
+                },
+
+                error: () => {
+                  this.showAlert(
+                    'Erro',
+                    'Não foi possível definir o cuidador e paciente ativos'
+                  );
+                }
+              });
             },
 
             error: () => {
