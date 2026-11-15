@@ -13,6 +13,8 @@ from decimal import Decimal
 import base64
 import os
 from html import escape as escape_html
+import json
+from urllib.request import Request, urlopen
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
@@ -278,6 +280,59 @@ def set_cuidador(cd):
         "cd_cuidador": cuidador_atual
     })
 
+
+# ---------------------------------------------------
+# ENVIAR ALERTA PELO TELEGRAM
+# ---------------------------------------------------
+def enviar_alerta_telegram(cd_paciente, nome_paciente, valor):
+
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if not token or not chat_id:
+        print("TELEGRAM: Token ou Chat ID não configurado.")
+        return False
+
+    mensagem = (
+        "⚠️ ALERTA DE BATIMENTOS - GERIATRIC CARE\n\n"
+        f"Paciente: {nome_paciente}\n"
+        f"Batimentos registrados: {valor} BPM\n\n"
+        "O valor ultrapassou o limite configurado de 100 BPM.\n"
+        "Verifique o paciente e siga o protocolo de atendimento."
+    )
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    dados = {
+        "chat_id": chat_id,
+        "text": mensagem
+    }
+
+    try:
+
+        requisicao = Request(
+            url,
+            data=json.dumps(dados).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urlopen(requisicao, timeout=10) as resposta:
+
+            resultado = json.loads(resposta.read().decode("utf-8"))
+
+            if resultado.get("ok"):
+                print("TELEGRAM: Alerta enviado com sucesso.")
+                return True
+
+            print("TELEGRAM: Erro no envio:", resultado)
+            return False
+
+    except Exception as e:
+
+        print("TELEGRAM: Falha ao enviar alerta:", e)
+        return False
+
 # ---------------------------------------------------
 # RECEBER BPM ESP32
 # ---------------------------------------------------
@@ -303,14 +358,13 @@ def bpm():
             return jsonify({"erro": "valor inválido"}), 400
 
         db = conectar()
-
         cursor = db.cursor()
 
         # -----------------------------------------
         # BUSCAR PACIENTE DO CUIDADOR
         # -----------------------------------------
         sql_paciente = """
-        SELECT cd_paciente
+        SELECT cd_paciente, nm_paciente
         FROM paciente
         WHERE cd_cuidador = %s
         LIMIT 1
@@ -330,8 +384,25 @@ def bpm():
             }), 404
 
         cd_paciente = paciente[0]
+        nome_paciente = paciente[1]
 
         print("CD PACIENTE:", cd_paciente)
+
+        # -----------------------------------------
+        # VERIFICAR ÚLTIMO BPM REGISTRADO
+        # -----------------------------------------
+        cursor.execute("""
+            SELECT btm_batimentos
+            FROM batimentos
+            WHERE cd_paciente = %s
+            AND dt_hr_batimentos >= NOW() - INTERVAL 2 MINUTE
+            ORDER BY dt_hr_batimentos DESC
+            LIMIT 1
+        """, (cd_paciente,))
+
+        ultimo_bpm = cursor.fetchone()
+
+        bpm_anterior = ultimo_bpm[0] if ultimo_bpm else None
 
         # -----------------------------------------
         # BPM TEMPORÁRIO
@@ -339,7 +410,7 @@ def bpm():
         dados.append(valor)
 
         # -----------------------------------------
-        # INSERT BATIMENTOS
+        # INSERIR BATIMENTOS
         # -----------------------------------------
         sql = """
         INSERT INTO batimentos
@@ -359,15 +430,29 @@ def bpm():
         cursor.execute(sql, (valor, cd_paciente))
 
         db.commit()
-# -----------------------------------------
-# ATUALIZAR RESUMOS
-# -----------------------------------------
+
+        # -----------------------------------------
+        # ATUALIZAR RESUMOS
+        # -----------------------------------------
         salvar_resumo_diario(cd_paciente)
         salvar_resumo_horario(cd_paciente)
         salvar_resumo_semanal(cd_paciente)
 
         cursor.close()
         db.close()
+
+        # -----------------------------------------
+        # VERIFICAR NECESSIDADE DE ALERTA
+        # -----------------------------------------
+        if valor > 100 and (
+            bpm_anterior is None or bpm_anterior <= 100
+        ):
+
+            enviar_alerta_telegram(
+                cd_paciente,
+                nome_paciente,
+                valor
+            )
 
         return jsonify({
             "ok": True,
