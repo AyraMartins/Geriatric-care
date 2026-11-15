@@ -13,7 +13,7 @@ export class BpmService {
 
   constructor(private http: HttpClient) {
 
-    timer(0, 500)
+    timer(0, 5000)
       .pipe(
         exhaustMap(() =>
           this.http.get<any>('https://geriatric-care.onrender.com').pipe(
