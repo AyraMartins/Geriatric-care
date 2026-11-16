@@ -444,7 +444,7 @@ def bpm():
         # -----------------------------------------
         # VERIFICAR NECESSIDADE DE ALERTA
         # -----------------------------------------
-        if valor > 100 and (
+        if valor >= 100 and (
             bpm_anterior is None or bpm_anterior <= 100
         ):
 

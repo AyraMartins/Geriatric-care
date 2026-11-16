@@ -1,6 +1,8 @@
+
 import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
+import { PushService } from './services/push.service';
 
 @Component({
   selector: 'app-root',
@@ -9,8 +11,15 @@ import { Router } from '@angular/router';
 })
 export class AppComponent {
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private pushService: PushService
+  ) {
+
     this.verificarLogin();
+
+    this.pushService.iniciarNotificacoes();
+
   }
 
   verificarLogin() {
