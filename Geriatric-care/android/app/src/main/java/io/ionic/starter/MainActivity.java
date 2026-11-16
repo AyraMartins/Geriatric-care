@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package com.ayramartins.geriatriccare;
 
 import com.getcapacitor.BridgeActivity;
 

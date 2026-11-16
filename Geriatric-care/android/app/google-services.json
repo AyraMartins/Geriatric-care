@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "45650265540",
+    "project_id": "geriatric-care-803fa",
+    "storage_bucket": "geriatric-care-803fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:45650265540:android:e1b4bcbb14aeede9b81091",
+        "android_client_info": {
+          "package_name": "com.ayramartins.geriatriccare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVefusXbA-CUVkn1fcyfxGrpCdzfOxlvs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
