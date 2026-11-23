@@ -946,6 +946,18 @@ def resumo_pdf(cd_paciente):
         cursor.execute(sql, (cd_paciente,))
         resumo = cursor.fetchall()
 
+        cursor.execute("""
+            SELECT
+                DATE_FORMAT(dt_hr_batimentos, '%d/%m/%Y') AS data,
+                DATE_FORMAT(dt_hr_batimentos, '%H:%i:%s') AS horario,
+                btm_batimentos AS batimentos
+            FROM batimentos
+            WHERE cd_paciente = %s
+              AND btm_batimentos > 100
+            ORDER BY dt_hr_batimentos DESC
+        """, (cd_paciente,))
+        batimentos_elevados = cursor.fetchall()
+
         # BUSCAR TODOS OS TESTES BASAIS NA ORDEM DOS TIPOS
         cursor.execute("""
             SELECT
@@ -965,12 +977,56 @@ def resumo_pdf(cd_paciente):
             "paciente": nm_paciente,
             "cuidador": nm_cuidador,
             "dados": resumo,
-            "testes_basais": testes_basais
+            "testes_basais": testes_basais,
+            "batimentos_elevados": batimentos_elevados,
+            "total_batimentos_elevados": len(batimentos_elevados)
         })
 
     except Exception as e:
 
         print("ERRO RESUMO PDF:", e)
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+
+# ---------------------------------------------------
+# INFORMAÇÕES DO PACIENTE PARA O RELATÓRIO
+# ---------------------------------------------------
+@app.route('/paciente-info/<int:cd_paciente>')
+def paciente_info(cd_paciente):
+
+    try:
+
+        db = conectar()
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                p.nm_paciente,
+                c.nm_cuidador
+            FROM paciente p
+            INNER JOIN cuidador c ON c.cd_cuidador = p.cd_cuidador
+            WHERE p.cd_paciente = %s
+            LIMIT 1
+        """, (cd_paciente,))
+
+        dados = cursor.fetchone()
+
+        cursor.close()
+        db.close()
+
+        if dados:
+            return jsonify(dados)
+
+        return jsonify({
+            "erro": "Paciente não encontrado"
+        }), 404
+
+    except Exception as e:
+
+        print("ERRO PACIENTE INFO:", e)
 
         return jsonify({
             "erro": str(e)
