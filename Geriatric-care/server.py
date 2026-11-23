@@ -949,7 +949,7 @@ def resumo_pdf(cd_paciente):
         cursor.execute("""
             SELECT
                 DATE_FORMAT(dt_hr_batimentos, '%d/%m/%Y') AS data,
-                DATE_FORMAT(dt_hr_batimentos, '%H:%i:%s') AS horario,
+                DATE_FORMAT(dt_hr_batimentos, '%H:%i:%S') AS horario,
                 btm_batimentos AS batimentos
             FROM batimentos
             WHERE cd_paciente = %s
