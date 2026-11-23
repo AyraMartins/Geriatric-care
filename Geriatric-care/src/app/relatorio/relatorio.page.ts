@@ -35,6 +35,32 @@ interface TesteBasalRelatorio {
   media_bpm: number | null;
 }
 
+interface BatimentoElevadoRelatorio {
+  data: string;
+  horario: string;
+  batimentos: number;
+}
+
+interface ResumoPdfResponse {
+  paciente?: string | null;
+  cuidador?: string | null;
+  dados?: Array<{
+    data: string;
+    media: number | null;
+    maximo: number | null;
+    minimo: number | null;
+  }>;
+  testes_basais?: TesteBasalRelatorio[];
+  batimentos_elevados?: BatimentoElevadoRelatorio[];
+  total_batimentos_elevados?: number;
+}
+
+interface JsPdfComAutoTable extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
+
 @Component({
   selector: 'app-relatorio',
   templateUrl: './relatorio.page.html',
@@ -226,10 +252,157 @@ private adicionarTabelaTestesBasais(
       fillColor: [255, 77, 77],
       textColor: [255, 255, 255],
       fontSize: 12
-    }
+    },
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage'
   });
 
-  return (doc as any).lastAutoTable.finalY + 10;
+  return this.ultimaPosicaoTabela(doc) + 10;
+}
+
+private ultimaPosicaoTabela(doc: jsPDF): number {
+  const ultimaTabela = (doc as JsPdfComAutoTable).lastAutoTable;
+  if (!ultimaTabela) {
+    throw new Error('Não foi possível determinar a posição final da tabela.');
+  }
+  return ultimaTabela.finalY;
+}
+
+private adicionarTabelaBatimentosElevados(
+  doc: jsPDF,
+  batimentosElevados: BatimentoElevadoRelatorio[],
+  total: number,
+  startY: number
+): number {
+  const alturaPagina = doc.internal.pageSize.getHeight();
+  const margemInferior = 14;
+  let y = startY;
+
+  if (y + 30 > alturaPagina - margemInferior) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFontSize(14);
+  doc.text('Ocorrências acima de 100 BPM', 14, y);
+  doc.setFontSize(11);
+  doc.text(`Total de registros: ${total}`, 14, y + 7);
+
+  autoTable(doc, {
+    startY: y + 12,
+    head: [['Data', 'Horário', 'Batimentos (BPM)']],
+    body: batimentosElevados.map(registro => [
+      registro.data,
+      registro.horario,
+      registro.batimentos
+    ]),
+    styles: {
+      fontSize: 11,
+      cellPadding: 4
+    },
+    headStyles: {
+      fillColor: [255, 77, 77],
+      textColor: [255, 255, 255],
+      fontSize: 12
+    },
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage'
+  });
+
+  return this.ultimaPosicaoTabela(doc) + 10;
+}
+
+private criarDocumentoRelatorio(res: ResumoPdfResponse): jsPDF {
+  const dados = res.dados ?? [];
+  const paciente = res.paciente ?? '-';
+  const cuidador = res.cuidador ?? '-';
+  const testesBasais = res.testes_basais ?? [];
+  const batimentosElevados = res.batimentos_elevados ?? [];
+  const totalBatimentosElevados =
+    res.total_batimentos_elevados ?? batimentosElevados.length;
+  const doc = new jsPDF();
+
+  doc.setFontSize(20);
+  doc.text('Relatório BPM', 14, 20);
+  doc.setFontSize(12);
+  doc.text(`Paciente: ${paciente}`, 14, 35);
+  doc.text(`Cuidador: ${cuidador}`, 14, 45);
+
+  let y = this.adicionarTabelaTestesBasais(doc, testesBasais, 55);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Data', 'Média', 'Máximo', 'Mínimo']],
+    body: dados.map(item => [
+      item.data ?? '-',
+      item.media ?? '-',
+      item.maximo ?? '-',
+      item.minimo ?? '-'
+    ]),
+    styles: {
+      fontSize: 11,
+      cellPadding: 4
+    },
+    headStyles: {
+      fillColor: [255, 77, 77],
+      textColor: [255, 255, 255],
+      fontSize: 12
+    },
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage'
+  });
+  y = this.ultimaPosicaoTabela(doc) + 10;
+
+  y = this.adicionarTabelaBatimentosElevados(
+    doc,
+    batimentosElevados,
+    totalBatimentosElevados,
+    y
+  );
+
+  const imagemGraficoDia = this.criarImagemGraficoPDF(this.graficoDia);
+  const imagemGraficoSemana = this.criarImagemGraficoPDF(this.graficoSemana);
+  y = this.adicionarGraficoPDF(doc, 'Gráfico Diário', imagemGraficoDia, y);
+  this.adicionarGraficoPDF(doc, 'Gráfico Semanal', imagemGraficoSemana, y);
+
+  return doc;
+}
+
+private adicionarGraficoPDF(
+  doc: jsPDF,
+  titulo: string,
+  imagem: string,
+  startY: number
+): number {
+  const larguraPagina = doc.internal.pageSize.getWidth();
+  const alturaPagina = doc.internal.pageSize.getHeight();
+  const larguraImagem = larguraPagina - 30;
+  const alturaImagem = larguraImagem * (400 / 900);
+  const alturaBloco = alturaImagem + 5;
+  const margemInferior = 14;
+  let y = startY;
+
+  if (y + alturaBloco > alturaPagina - margemInferior) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFontSize(14);
+  doc.text(titulo, 14, y);
+  doc.addImage(imagem, 'PNG', 15, y + 5, larguraImagem, alturaImagem);
+  return y + alturaBloco + 10;
+}
+
+private graficosProntos(): boolean {
+  if (this.graficoDia && this.graficoSemana) {
+    return true;
+  }
+
+  alert('Os gráficos ainda estão carregando. Tente novamente em alguns segundos.');
+  return false;
 }
 
   // =========================
@@ -372,313 +545,84 @@ private adicionarTabelaTestesBasais(
 // =========================
 // PDF
 // =========================
-async baixarPDF() {
-
-  if (!this.cdPaciente) return;
-
-  this.http.get<any>(
-    `https://geriatric-care.onrender.com/resumo-pdf/${this.cdPaciente}`
-  ).subscribe(async (res) => {
-
-    const dados = res?.dados ?? [];
-    const paciente = res?.paciente ?? '-';
-    const cuidador = res?.cuidador ?? '-';
-    const testesBasais: TesteBasalRelatorio[] = res?.testes_basais ?? [];
-
-
-    const doc = new jsPDF();
-
-    // TÍTULO
-    doc.setFontSize(20);
-    doc.text('Relatório BPM', 14, 20);
-
-    doc.setFontSize(12);
-    doc.text(`Paciente: ${paciente}`, 14, 35);
-    doc.text(`Cuidador: ${cuidador}`, 14, 45);
-
-    const inicioTabelaDados = this.adicionarTabelaTestesBasais(
-      doc,
-      testesBasais,
-      55
-    );
-
-    // TABELA DOS DADOS
-    autoTable(doc, {
-
-      startY: inicioTabelaDados,
-
-      styles: {
-        fontSize: 11,
-        cellPadding: 4
-      },
-
-      head: [[
-        'Data',
-        'Média',
-        'Máximo',
-        'Mínimo'
-      ]],
-
-      body: dados.map((i: any) => [
-        i.data ?? '-',
-        i.media ?? '-',
-        i.maximo ?? '-',
-        i.minimo ?? '-'
-      ]),
-
-      headStyles: {
-        fillColor: [255, 77, 77],
-        textColor: [255, 255, 255],
-        fontSize: 12
-      }
-
-    });
-    let y =
-      (doc as any)
-      .lastAutoTable
-      .finalY + 20;
-
-    const imagemGraficoDia = this.criarImagemGraficoPDF(this.graficoDia);
-    const imagemGraficoSemana = this.criarImagemGraficoPDF(this.graficoSemana);
-
-    setTimeout(async () => {
-
-      doc.setFontSize(14);
-      doc.text('Gráfico Diário', 14, y);
-      doc.addImage(imagemGraficoDia, 'PNG', 15, y + 5, 180, 80);
-      y += 100;
-
-      if (y > 220) {
-
-        doc.addPage();
-
-        y = 20;
-      }
-
-      doc.setFontSize(14);
-      doc.text('Gráfico Semanal', 14, y);
-      doc.addImage(imagemGraficoSemana, 'PNG', 15, y + 5, 180, 80);
-
-      try {
-
-        const pdfBase64 =
-          doc.output('datauristring')
-          .split(',')[1];
-
-        await Filesystem.writeFile({
-
-          path:
-            `relatorio-bpm-${Date.now()}.pdf`,
-
-          data:
-            pdfBase64,
-
-          directory:
-            Directory.Documents
-
-        });
-
-        alert(
-          'PDF salvo com sucesso!'
-        );
-
-      } catch (err: any) {
-
-        console.error(
-          'ERRO PDF:',
-          err
-        );
-
-        alert(
-          'Erro ao salvar PDF: ' +
-          JSON.stringify(err)
-        );
-
-      }
-
-    }, 500);
-
-  });
-
+private criarPdfBase64(res: ResumoPdfResponse): string {
+  const dataUri = this.criarDocumentoRelatorio(res).output('datauristring');
+  const separator = dataUri.indexOf(',');
+  if (separator < 0) {
+    throw new Error('O documento gerado não possui um formato PDF válido.');
+  }
+  return dataUri.slice(separator + 1);
 }
 
-// =========================
-// ENVIAR EMAIL MÉDICOS
-// =========================
-enviarMedicos() {
+async baixarPDF() {
+  const cdPaciente = this.cdPaciente;
+  if (!cdPaciente || !this.graficosProntos()) return;
 
-  if (!this.cdPaciente || this.enviandoEmail) return;
+  this.http.get<ResumoPdfResponse>(
+    `https://geriatric-care.onrender.com/resumo-pdf/${cdPaciente}`
+  ).subscribe({
+    next: async res => {
+      try {
+        await Filesystem.writeFile({
+          path: `relatorio-bpm-${Date.now()}.pdf`,
+          data: this.criarPdfBase64(res),
+          directory: Directory.Documents
+        });
+        alert('PDF salvo com sucesso!');
+      } catch (err: unknown) {
+        console.error('ERRO PDF:', err);
+        alert(`Erro ao salvar PDF: ${String(err)}`);
+      }
+    },
+    error: err => {
+      alert(
+        `Não foi possível gerar o relatório: ${err.error?.erro ?? err.message}`
+      );
+    }
+  });
+}
+
+enviarMedicos() {
+  const cdPaciente = this.cdPaciente;
+  if (!cdPaciente || this.enviandoEmail || !this.graficosProntos()) return;
 
   this.enviandoEmail = true;
 
-  this.http.get<any>(
-    `https://geriatric-care.onrender.com/resumo-pdf/${this.cdPaciente}`
+  this.http.get<ResumoPdfResponse>(
+    `https://geriatric-care.onrender.com/resumo-pdf/${cdPaciente}`
   ).subscribe({
-    next: (res) => {
-
-    if (!this.graficoDia || !this.graficoSemana) {
-      this.enviandoEmail = false;
-      alert('Os gráficos ainda estão carregando. Tente novamente em alguns segundos.');
-      return;
-    }
-
-    const dados = res?.dados ?? [];
-
-    const paciente =
-      res?.paciente ?? '-';
-
-    const cuidador =
-      res?.cuidador ?? '-';
-
-    const testesBasais: TesteBasalRelatorio[] = res?.testes_basais ?? [];
-    
-
-    // -------------------------
-    // PDF
-    // -------------------------
-    const doc = new jsPDF();
-
-    doc.setFontSize(20);
-
-    doc.text(
-      'Relatório BPM',
-      14,
-      20
-    );
-
-    doc.setFontSize(12);
-
-    doc.text(
-      `Paciente: ${paciente}`,
-      14,
-      35
-    );
-
-    doc.text(
-      `Cuidador: ${cuidador}`,
-      14,
-      45
-    );
-
-
-
-
-    const inicioTabelaDados = this.adicionarTabelaTestesBasais(
-      doc,
-      testesBasais,
-      55
-    );
-
-    // -------------------------
-    // TABELA
-    // -------------------------
-    autoTable(doc, {
-
-      startY: inicioTabelaDados,
-
-      styles: {
-        fontSize: 11,
-        cellPadding: 4
-      },
-
-      headStyles: {
-        fillColor: [255, 77, 77],
-        textColor: 255,
-        fontSize: 12
-      },
-
-      head: [[
-        'Data',
-        'Média',
-        'Máximo',
-        'Mínimo'
-      ]],
-
-      body: dados.map((i: any) => [
-
-        i.data ?? '-',
-
-        i.media ?? '-',
-
-        i.maximo ?? '-',
-
-        i.minimo ?? '-'
-
-      ])
-    });
-
-    let y =
-      (doc as any)
-      .lastAutoTable
-      .finalY + 20;
-
-    const imagemGraficoDia = this.criarImagemGraficoPDF(this.graficoDia);
-    const imagemGraficoSemana = this.criarImagemGraficoPDF(this.graficoSemana);
-
-    setTimeout(() => {
-
-      doc.setFontSize(14);
-      doc.text('Gráfico Diário', 14, y);
-      doc.addImage(imagemGraficoDia, 'PNG', 15, y + 5, 180, 80);
-      y += 100;
-
-      // -------------------------
-      // NOVA PÁGINA
-      // -------------------------
-      if (y > 220) {
-
-        doc.addPage();
-
-        y = 20;
+    next: res => {
+      let pdfBase64: string;
+      try {
+        pdfBase64 = this.criarPdfBase64(res);
+      } catch (err: unknown) {
+        this.enviandoEmail = false;
+        console.error('ERRO PDF:', err);
+        alert(`Não foi possível gerar o PDF: ${String(err)}`);
+        return;
       }
 
-      doc.setFontSize(14);
-      doc.text('Gráfico Semanal', 14, y);
-      doc.addImage(imagemGraficoSemana, 'PNG', 15, y + 5, 180, 80);
-
-      // -------------------------
-      // BASE64 PDF
-      // -------------------------
-      const pdfBase64 =
-        doc.output('datauristring')
-        .split(',')[1];
-
-      // -------------------------
-      // ENVIAR BACKEND
-      // -------------------------
       this.http.post(
-
-        `https://geriatric-care.onrender.com/enviar-medicos/${this.cdPaciente}`,
-
-        {
-          pdf_base64: pdfBase64
-        }
-
+        `https://geriatric-care.onrender.com/enviar-medicos/${cdPaciente}`,
+        { pdf_base64: pdfBase64 }
       ).subscribe({
-
         next: () => {
-
           this.enviandoEmail = false;
           alert('E-mail enviado com sucesso');
         },
-
-        error: (err) => {
-
+        error: err => {
           this.enviandoEmail = false;
           const falhas = err.error?.falhas ?? [];
           const detalheFalhas = falhas.length
             ? ` ${falhas.map((falha: any) => `${falha.email ?? falha.medico}: ${falha.erro}`).join('; ')}`
             : '';
-
           alert(
             `${err.error?.erro ?? err.error?.mensagem ?? 'Falha ao enviar o e-mail.'}${detalheFalhas}`
           );
         }
       });
-
-    }, 500);
     },
-    error: (err) => {
+    error: err => {
       this.enviandoEmail = false;
       alert(
         `Não foi possível gerar o relatório para envio: ${err.error?.erro ?? err.message}`
