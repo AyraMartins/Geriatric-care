@@ -15,6 +15,7 @@ import os
 from html import escape as escape_html
 import json
 from urllib.request import Request, urlopen
+from datetime import date
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
@@ -913,6 +914,36 @@ def resumo_semanal(cd_paciente):
 def resumo_pdf(cd_paciente):
 
     try:
+        data_inicial = request.args.get('data_inicial')
+        data_final = request.args.get('data_final')
+
+        if not data_inicial or not data_final:
+            return jsonify({
+                "erro": "Informe as datas inicial e final do período."
+            }), 400
+
+        try:
+            inicio = date.fromisoformat(data_inicial)
+            fim = date.fromisoformat(data_final)
+        except ValueError:
+            return jsonify({
+                "erro": "Informe datas válidas no formato AAAA-MM-DD."
+            }), 400
+
+        if inicio.isoformat() != data_inicial or fim.isoformat() != data_final:
+            return jsonify({
+                "erro": "Informe datas válidas no formato AAAA-MM-DD."
+            }), 400
+
+        if inicio > fim:
+            return jsonify({
+                "erro": "A data inicial não pode ser posterior à data final."
+            }), 400
+
+        if inicio > date.today() or fim > date.today():
+            return jsonify({
+                "erro": "O período não pode conter datas futuras."
+            }), 400
 
         db = conectar()
         cursor = db.cursor(dictionary=True)
@@ -939,12 +970,21 @@ def resumo_pdf(cd_paciente):
             MIN(btm_batimentos) AS minimo
         FROM batimentos
         WHERE cd_paciente = %s
+          AND dt_hr_batimentos >= %s
+          AND dt_hr_batimentos < DATE_ADD(%s, INTERVAL 1 DAY)
         GROUP BY DATE(dt_hr_batimentos)
         ORDER BY DATE(dt_hr_batimentos) DESC
         """
 
-        cursor.execute(sql, (cd_paciente,))
+        cursor.execute(sql, (cd_paciente, inicio, fim))
         resumo = cursor.fetchall()
+
+        if not resumo:
+            cursor.close()
+            db.close()
+            return jsonify({
+                "erro": "Não existem registros de batimentos no período selecionado."
+            }), 404
 
         cursor.execute("""
             SELECT
@@ -953,12 +993,26 @@ def resumo_pdf(cd_paciente):
                 btm_batimentos AS batimentos
             FROM batimentos
             WHERE cd_paciente = %s
+              AND dt_hr_batimentos >= %s
+              AND dt_hr_batimentos < DATE_ADD(%s, INTERVAL 1 DAY)
               AND btm_batimentos > 100
             ORDER BY dt_hr_batimentos DESC
-        """, (cd_paciente,))
+        """, (cd_paciente, inicio, fim))
         batimentos_elevados = cursor.fetchall()
 
-        # BUSCAR TODOS OS TESTES BASAIS NA ORDEM DOS TIPOS
+        cursor.execute("""
+            SELECT
+                HOUR(dt_hr_batimentos) AS hora,
+                ROUND(AVG(btm_batimentos), 0) AS media
+            FROM batimentos
+            WHERE cd_paciente = %s
+              AND dt_hr_batimentos >= %s
+              AND dt_hr_batimentos < DATE_ADD(%s, INTERVAL 1 DAY)
+            GROUP BY HOUR(dt_hr_batimentos)
+            ORDER BY hora ASC
+        """, (cd_paciente, inicio, fim))
+        grafico_horario = cursor.fetchall()
+
         cursor.execute("""
             SELECT
                 cd_tipo,
@@ -967,7 +1021,6 @@ def resumo_pdf(cd_paciente):
             WHERE cd_paciente = %s
             ORDER BY cd_tipo ASC, cd_teste_basal ASC
         """, (cd_paciente,))
-
         testes_basais = cursor.fetchall()
 
         cursor.close()
@@ -979,7 +1032,8 @@ def resumo_pdf(cd_paciente):
             "dados": resumo,
             "testes_basais": testes_basais,
             "batimentos_elevados": batimentos_elevados,
-            "total_batimentos_elevados": len(batimentos_elevados)
+            "total_batimentos_elevados": len(batimentos_elevados),
+            "grafico_horario": grafico_horario
         })
 
     except Exception as e:

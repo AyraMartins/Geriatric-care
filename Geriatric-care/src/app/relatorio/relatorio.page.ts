@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   Filesystem,
   Directory
@@ -53,7 +54,13 @@ interface ResumoPdfResponse {
   testes_basais?: TesteBasalRelatorio[];
   batimentos_elevados?: BatimentoElevadoRelatorio[];
   total_batimentos_elevados?: number;
+  grafico_horario?: Array<{
+    hora: number;
+    media: number | null;
+  }>;
 }
+
+type AcaoRelatorio = 'download' | 'email';
 
 interface JsPdfComAutoTable extends jsPDF {
   lastAutoTable?: {
@@ -66,7 +73,7 @@ interface JsPdfComAutoTable extends jsPDF {
   templateUrl: './relatorio.page.html',
   styleUrls: ['./relatorio.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, FormsModule]
 })
 export class RelatorioPage implements OnInit {
 
@@ -77,6 +84,12 @@ export class RelatorioPage implements OnInit {
 
   cdPaciente: number | null = null;
   enviandoEmail = false;
+  modalPeriodoAberto = false;
+  dataInicial = '';
+  dataFinal = '';
+  erroDatas = '';
+  acaoRelatorio: AcaoRelatorio = 'download';
+  dataHoje = this.obterHojeISO();
 
   nomePaciente: string = '';
   nomeCuidador: string = '';
@@ -161,7 +174,11 @@ private atualizarTemaGraficos() {
   });
 }
 
-private criarImagemGraficoPDF(grafico: any): string {
+private criarImagemGraficoPDF(
+  labels: string[],
+  medias: Array<number | null>,
+  tituloEixoX: string
+): string {
   const canvas = document.createElement('canvas');
   canvas.width = 900;
   canvas.height = 400;
@@ -169,11 +186,14 @@ private criarImagemGraficoPDF(grafico: any): string {
   const graficoPDF = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: [...(grafico.data.labels ?? [])],
-      datasets: grafico.data.datasets.map((dataset: any) => ({
-        ...dataset,
-        data: [...dataset.data]
-      }))
+      labels,
+      datasets: [{
+        data: medias,
+        borderColor: '#ff4d4d',
+        pointBackgroundColor: '#ff4d4d',
+        borderWidth: 2,
+        fill: false
+      }]
     },
     options: {
       responsive: false,
@@ -185,7 +205,7 @@ private criarImagemGraficoPDF(grafico: any): string {
         x: {
           title: {
             display: true,
-            text: grafico.options.scales.x.title.text,
+            text: tituloEixoX,
             color: '#000000'
           },
           ticks: { color: '#000000' },
@@ -194,7 +214,7 @@ private criarImagemGraficoPDF(grafico: any): string {
         y: {
           title: {
             display: true,
-            text: grafico.options.scales.y.title.text,
+            text: 'BPM (Média)',
             color: '#000000'
           },
           ticks: { color: '#000000' },
@@ -314,7 +334,11 @@ private adicionarTabelaBatimentosElevados(
   return this.ultimaPosicaoTabela(doc) + 10;
 }
 
-private criarDocumentoRelatorio(res: ResumoPdfResponse): jsPDF {
+private criarDocumentoRelatorio(
+  res: ResumoPdfResponse,
+  dataInicial: string,
+  dataFinal: string
+): jsPDF {
   const dados = res.dados ?? [];
   const paciente = res.paciente ?? '-';
   const cuidador = res.cuidador ?? '-';
@@ -329,8 +353,13 @@ private criarDocumentoRelatorio(res: ResumoPdfResponse): jsPDF {
   doc.setFontSize(12);
   doc.text(`Paciente: ${paciente}`, 14, 35);
   doc.text(`Cuidador: ${cuidador}`, 14, 45);
+  doc.text(
+    `Período: ${this.formatarData(dataInicial)} a ${this.formatarData(dataFinal)}`,
+    14,
+    55
+  );
 
-  let y = this.adicionarTabelaTestesBasais(doc, testesBasais, 55);
+  let y = this.adicionarTabelaTestesBasais(doc, testesBasais, 65);
 
   autoTable(doc, {
     startY: y,
@@ -363,8 +392,16 @@ private criarDocumentoRelatorio(res: ResumoPdfResponse): jsPDF {
     y
   );
 
-  const imagemGraficoDia = this.criarImagemGraficoPDF(this.graficoDia);
-  const imagemGraficoSemana = this.criarImagemGraficoPDF(this.graficoSemana);
+  const imagemGraficoDia = this.criarImagemGraficoPDF(
+    (res.grafico_horario ?? []).map(item => `${String(item.hora).padStart(2, '0')}h`),
+    (res.grafico_horario ?? []).map(item => item.media),
+    'Hora'
+  );
+  const imagemGraficoSemana = this.criarImagemGraficoPDF(
+    dados.map(item => item.data),
+    dados.map(item => item.media),
+    'Data'
+  );
   y = this.adicionarGraficoPDF(doc, 'Gráfico Diário', imagemGraficoDia, y);
   this.adicionarGraficoPDF(doc, 'Gráfico Semanal', imagemGraficoSemana, y);
 
@@ -394,15 +431,6 @@ private adicionarGraficoPDF(
   doc.text(titulo, 14, y);
   doc.addImage(imagem, 'PNG', 15, y + 5, larguraImagem, alturaImagem);
   return y + alturaBloco + 10;
-}
-
-private graficosProntos(): boolean {
-  if (this.graficoDia && this.graficoSemana) {
-    return true;
-  }
-
-  alert('Os gráficos ainda estão carregando. Tente novamente em alguns segundos.');
-  return false;
 }
 
   // =========================
@@ -545,8 +573,16 @@ private graficosProntos(): boolean {
 // =========================
 // PDF
 // =========================
-private criarPdfBase64(res: ResumoPdfResponse): string {
-  const dataUri = this.criarDocumentoRelatorio(res).output('datauristring');
+private criarPdfBase64(
+  res: ResumoPdfResponse,
+  dataInicial: string,
+  dataFinal: string
+): string {
+  const dataUri = this.criarDocumentoRelatorio(
+    res,
+    dataInicial,
+    dataFinal
+  ).output('datauristring');
   const separator = dataUri.indexOf(',');
   if (separator < 0) {
     throw new Error('O documento gerado não possui um formato PDF válido.');
@@ -554,51 +590,96 @@ private criarPdfBase64(res: ResumoPdfResponse): string {
   return dataUri.slice(separator + 1);
 }
 
-async baixarPDF() {
-  const cdPaciente = this.cdPaciente;
-  if (!cdPaciente || !this.graficosProntos()) return;
-
-  this.http.get<ResumoPdfResponse>(
-    `https://geriatric-care.onrender.com/resumo-pdf/${cdPaciente}`
-  ).subscribe({
-    next: async res => {
-      try {
-        await Filesystem.writeFile({
-          path: `relatorio-bpm-${Date.now()}.pdf`,
-          data: this.criarPdfBase64(res),
-          directory: Directory.Documents
-        });
-        alert('PDF salvo com sucesso!');
-      } catch (err: unknown) {
-        console.error('ERRO PDF:', err);
-        alert(`Erro ao salvar PDF: ${String(err)}`);
-      }
-    },
-    error: err => {
-      alert(
-        `Não foi possível gerar o relatório: ${err.error?.erro ?? err.message}`
-      );
-    }
-  });
+baixarPDF() {
+  this.abrirModalPeriodo('download');
 }
 
 enviarMedicos() {
-  const cdPaciente = this.cdPaciente;
-  if (!cdPaciente || this.enviandoEmail || !this.graficosProntos()) return;
+  if (!this.enviandoEmail) {
+    this.abrirModalPeriodo('email');
+  }
+}
 
-  this.enviandoEmail = true;
+abrirModalPeriodo(acao: AcaoRelatorio) {
+  if (!this.cdPaciente || this.enviandoEmail) return;
+
+  this.acaoRelatorio = acao;
+  this.dataInicial = '';
+  this.dataFinal = '';
+  this.erroDatas = '';
+  this.dataHoje = this.obterHojeISO();
+  this.modalPeriodoAberto = true;
+}
+
+fecharModalPeriodo() {
+  this.modalPeriodoAberto = false;
+  this.erroDatas = '';
+}
+
+confirmarPeriodo() {
+  if (!this.dataInicial || !this.dataFinal) {
+    this.erroDatas = 'Informe a data inicial e a data final.';
+    return;
+  }
+
+  if (!this.dataISOValida(this.dataInicial) || !this.dataISOValida(this.dataFinal)) {
+    this.erroDatas = 'Informe datas válidas.';
+    return;
+  }
+  if (this.dataInicial > this.dataFinal) {
+    this.erroDatas = 'A data inicial não pode ser posterior à data final.';
+    return;
+  }
+  if (this.dataInicial > this.dataHoje || this.dataFinal > this.dataHoje) {
+    this.erroDatas = 'Não é permitido selecionar datas futuras.';
+    return;
+  }
+
+  const { dataInicial, dataFinal, acaoRelatorio } = this;
+  this.fecharModalPeriodo();
+  this.processarRelatorio(acaoRelatorio, dataInicial, dataFinal);
+}
+
+private processarRelatorio(
+  acao: AcaoRelatorio,
+  dataInicial: string,
+  dataFinal: string
+) {
+  const cdPaciente = this.cdPaciente;
+  if (!cdPaciente) return;
+
+  if (acao === 'email') {
+    this.enviandoEmail = true;
+  }
 
   this.http.get<ResumoPdfResponse>(
-    `https://geriatric-care.onrender.com/resumo-pdf/${cdPaciente}`
+    `https://geriatric-care.onrender.com/resumo-pdf/${cdPaciente}` +
+    `?data_inicial=${encodeURIComponent(dataInicial)}` +
+    `&data_final=${encodeURIComponent(dataFinal)}`
   ).subscribe({
-    next: res => {
+    next: async res => {
       let pdfBase64: string;
       try {
-        pdfBase64 = this.criarPdfBase64(res);
+        pdfBase64 = this.criarPdfBase64(res, dataInicial, dataFinal);
       } catch (err: unknown) {
         this.enviandoEmail = false;
         console.error('ERRO PDF:', err);
         alert(`Não foi possível gerar o PDF: ${String(err)}`);
+        return;
+      }
+
+      if (acao === 'download') {
+        try {
+          await Filesystem.writeFile({
+            path: `relatorio-bpm-${Date.now()}.pdf`,
+            data: pdfBase64,
+            directory: Directory.Documents
+          });
+          alert('PDF salvo com sucesso!');
+        } catch (err: unknown) {
+          console.error('ERRO PDF:', err);
+          alert(`Erro ao salvar PDF: ${String(err)}`);
+        }
         return;
       }
 
@@ -624,10 +705,35 @@ enviarMedicos() {
     },
     error: err => {
       this.enviandoEmail = false;
+      const mensagem = err.error?.erro ?? err.message;
       alert(
-        `Não foi possível gerar o relatório para envio: ${err.error?.erro ?? err.message}`
+        acao === 'download'
+          ? `Não foi possível gerar o relatório: ${mensagem}`
+          : `Não foi possível gerar o relatório para envio: ${mensagem}`
       );
     }
   });
+}
+
+private obterHojeISO(): string {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  return `${hoje.getFullYear()}-${mes}-${dia}`;
+}
+
+private formatarData(data: string): string {
+  const [ano, mes, dia] = data.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+private dataISOValida(data: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return false;
+
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const valor = new Date(ano, mes - 1, dia);
+  return valor.getFullYear() === ano &&
+    valor.getMonth() === mes - 1 &&
+    valor.getDate() === dia;
 }
 }
