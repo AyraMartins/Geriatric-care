@@ -26,6 +26,14 @@ canvas {
 
   max-height: 300px;
 }
+
+.acoes-periodo {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 body.dark {
 
   p,
