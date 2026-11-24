@@ -35,7 +35,7 @@ class FakeCursor:
         elif "SELECT nm_paciente" in query:
             self.rows = [{"nm_paciente": "Paciente Teste"}]
         elif "HOUR(dt_hr_batimentos)" in query:
-            self.rows = [{"hora": 14, "media": 80}]
+            self.rows = [{"data": "23/11/2026", "hora": 14, "media": 80}]
         elif "btm_batimentos > 100" in query:
             self.rows = [{
                 "data": "23/11/2026",
@@ -100,6 +100,7 @@ class ResumoPdfEndpointTests(unittest.TestCase):
         self.assertEqual(payload["total_batimentos_elevados"], 1)
         self.assertEqual(payload["batimentos_elevados"][0]["horario"], "14:30:45")
         self.assertEqual(payload["grafico_horario"][0]["hora"], 14)
+        self.assertEqual(payload["grafico_dia_data"], "23/11/2026")
         self.assertEqual(
             payload["testes_basais"],
             [
@@ -120,9 +121,21 @@ class ResumoPdfEndpointTests(unittest.TestCase):
             self.assertIn("dt_hr_batimentos >= %s", query)
             self.assertIn("DATE_ADD(%s, INTERVAL 1 DAY)", query)
             self.assertEqual(
-                tuple(str(value) for value in params),
+                tuple(str(value) for value in params[:3]),
                 ("1", "2026-11-20", "2026-11-23"),
             )
+
+        grafico_dia_query = next(
+            execution
+            for cursor in database.cursors
+            for execution in cursor.executions
+            if "HOUR(dt_hr_batimentos)" in execution[0]
+        )
+        self.assertIn(
+            "DATE(dt_hr_batimentos) = STR_TO_DATE(%s, '%d/%m/%Y')",
+            grafico_dia_query[0],
+        )
+        self.assertEqual(grafico_dia_query[1][3], "23/11/2026")
 
         teste_basal_query = next(
             execution

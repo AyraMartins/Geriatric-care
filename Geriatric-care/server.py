@@ -1002,15 +1002,17 @@ def resumo_pdf(cd_paciente):
 
         cursor.execute("""
             SELECT
+                DATE_FORMAT(DATE(dt_hr_batimentos), '%d/%m/%Y') AS data,
                 HOUR(dt_hr_batimentos) AS hora,
                 ROUND(AVG(btm_batimentos), 0) AS media
             FROM batimentos
             WHERE cd_paciente = %s
               AND dt_hr_batimentos >= %s
               AND dt_hr_batimentos < DATE_ADD(%s, INTERVAL 1 DAY)
+              AND DATE(dt_hr_batimentos) = STR_TO_DATE(%s, '%d/%m/%Y')
             GROUP BY HOUR(dt_hr_batimentos)
             ORDER BY hora ASC
-        """, (cd_paciente, inicio, fim))
+        """, (cd_paciente, inicio, fim, resumo[0]['data']))
         grafico_horario = cursor.fetchall()
 
         cursor.execute("""
@@ -1033,7 +1035,8 @@ def resumo_pdf(cd_paciente):
             "testes_basais": testes_basais,
             "batimentos_elevados": batimentos_elevados,
             "total_batimentos_elevados": len(batimentos_elevados),
-            "grafico_horario": grafico_horario
+            "grafico_horario": grafico_horario,
+            "grafico_dia_data": resumo[0]['data']
         })
 
     except Exception as e:

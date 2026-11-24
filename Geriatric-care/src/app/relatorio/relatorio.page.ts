@@ -54,7 +54,9 @@ interface ResumoPdfResponse {
   testes_basais?: TesteBasalRelatorio[];
   batimentos_elevados?: BatimentoElevadoRelatorio[];
   total_batimentos_elevados?: number;
+  grafico_dia_data?: string;
   grafico_horario?: Array<{
+    data: string;
     hora: number;
     media: number | null;
   }>;
@@ -392,17 +394,23 @@ private criarDocumentoRelatorio(
     y
   );
 
+  const dadosCronologicos = [...dados].reverse();
   const imagemGraficoDia = this.criarImagemGraficoPDF(
     (res.grafico_horario ?? []).map(item => `${String(item.hora).padStart(2, '0')}h`),
     (res.grafico_horario ?? []).map(item => item.media),
     'Hora'
   );
   const imagemGraficoSemana = this.criarImagemGraficoPDF(
-    dados.map(item => item.data),
-    dados.map(item => item.media),
+    dadosCronologicos.map(item => item.data),
+    dadosCronologicos.map(item => item.media),
     'Data'
   );
-  y = this.adicionarGraficoPDF(doc, 'Gráfico Diário', imagemGraficoDia, y);
+  y = this.adicionarGraficoPDF(
+    doc,
+    `Gráfico Diário - ${res.grafico_dia_data ?? '-'}`,
+    imagemGraficoDia,
+    y
+  );
   this.adicionarGraficoPDF(doc, 'Gráfico Semanal', imagemGraficoSemana, y);
 
   return doc;
