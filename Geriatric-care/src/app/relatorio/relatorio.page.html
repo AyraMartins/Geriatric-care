@@ -142,11 +142,16 @@
         </ion-text>
 
         <div class="acoes-periodo">
-          <ion-button fill="outline" color="medium" (click)="fecharModalPeriodo()">
-            Cancelar
-          </ion-button>
-          <ion-button color="danger" (click)="confirmarPeriodo()">
+          <ion-button
+            color="danger"
+            (click)="confirmarPeriodo()">
             Confirmar
+          </ion-button>
+          <ion-button
+            class="botao-cancelar"
+            color="medium"
+            (click)="fecharModalPeriodo()">
+            Cancelar
           </ion-button>
         </div>
       </ion-content>
